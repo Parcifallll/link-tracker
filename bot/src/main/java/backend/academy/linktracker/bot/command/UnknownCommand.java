@@ -16,6 +16,16 @@ public class UnknownCommand implements Command {
     @Override
     public SendMessage handle(Update update) {
         long chatId = update.message().chat().id();
-        return new SendMessage(chatId, "Unknown command. Type /help for getting available commands.");
+        return new SendMessage(chatId, message());
+    }
+
+    @Override
+    public String description() {
+        return "Unknown command";
+    }
+
+    @Override
+    public String message() {
+        return "Unknown command. Type /help for getting available commands.";
     }
 }

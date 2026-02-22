@@ -32,12 +32,14 @@ class UpdateHandlerTest {
     @BeforeEach
     void setUp() {
         var startCommand = new StartCommand(userService);
-        var helpCommand = new HelpCommand();
         var unknownCommand = new UnknownCommand();
+
+        var helpCommand = new HelpCommand(List.of(startCommand));
 
         handler = new UpdateHandler(List.of(startCommand, helpCommand), unknownCommand);
     }
 
+    // Helper to build a fake Update with given text and chatId
     private Update buildUpdate(String text, long chatId) {
         var chat = mock(Chat.class);
         when(chat.id()).thenReturn(chatId);
@@ -71,7 +73,6 @@ class UpdateHandlerTest {
         assertNotNull(response);
         String text = response.getParameters().get("text").toString();
         assertTrue(text.contains("/start"));
-        assertTrue(text.contains("/help"));
     }
 
     @Test

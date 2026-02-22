@@ -21,6 +21,16 @@ public class StartCommand implements Command {
     public SendMessage handle(Update update) {
         long chatId = update.message().chat().id();
         userService.registerUser(chatId);
-        return new SendMessage(chatId, "Welcome! Type /help for getting available commands.");
+        return new SendMessage(chatId, message());
+    }
+
+    @Override
+    public String description() {
+        return "Start the bot";
+    }
+
+    @Override
+    public String message() {
+        return "Welcome! Type /help for getting available commands.";
     }
 }

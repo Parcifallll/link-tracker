@@ -5,8 +5,11 @@ import com.pengrad.telegrambot.request.SendMessage;
 
 public interface Command {
 
-    // returns the supported command name (e.x. "/start")
     String command();
 
     SendMessage handle(Update update);
+
+    String description();
+
+    String message();
 }

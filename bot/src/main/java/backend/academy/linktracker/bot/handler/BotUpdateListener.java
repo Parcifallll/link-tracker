@@ -27,7 +27,7 @@ public class BotUpdateListener {
     public void start() {
         BotCommand[] menu = commands.stream()
                 .filter(c -> !c.command().isEmpty())
-                .map(c -> new BotCommand(c.command(), c.command()))
+                .map(c -> new BotCommand(c.command(), c.description()))
                 .toArray(BotCommand[]::new);
 
         bot.execute(new SetMyCommands(menu));
