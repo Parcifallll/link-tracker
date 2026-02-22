@@ -4,10 +4,18 @@ server:
 spring:
   application:
     name: bot
+  output:
+    ansi:
+      enabled: always
 
 app:
   telegram:
     url: https://api.telegram.org/bot
-    token: ${TELEGRAM_TOKEN} # Use env variable. DO NOT KEEP TOKEN HERE
+    token: ${APP_TELEGRAM_TOKEN}
     update-listener-sleep: 1s
     debug: false
+
+logging:
+  structured:
+    format:
+      console: ecs
