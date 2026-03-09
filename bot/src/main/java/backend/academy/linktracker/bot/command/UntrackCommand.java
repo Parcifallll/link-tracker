@@ -59,7 +59,7 @@ public class UntrackCommand implements Command {
         try {
             URI uri = URI.create(text);
             userService.resetSession(chatId);
-            // TODO: send delete request to scrapper via HTTP client
+            // TODO: send delete request to scrapper via HTTP dto
             return new SendMessage(chatId, "Link " + uri + " is no longer tracked!");
         } catch (IllegalArgumentException e) {
             return new SendMessage(chatId, "Invalid link. Please send a valid URL");

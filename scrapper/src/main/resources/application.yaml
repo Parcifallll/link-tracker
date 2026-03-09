@@ -11,3 +11,5 @@ app:
     access-token: ${STACKOVERFLOW_ACCESS_KEY}
   github:
     token: ${GITHUB_TOKEN}
+  bot:
+    url: http://localhost:8080
