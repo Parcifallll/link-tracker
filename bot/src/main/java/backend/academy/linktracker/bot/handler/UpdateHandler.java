@@ -7,6 +7,7 @@ import com.pengrad.telegrambot.request.SendMessage;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Component;
 
 @Slf4j
@@ -22,17 +23,25 @@ public class UpdateHandler {
             return null;
         }
 
-        // extract command
-        String text = update.message().text().split("[@\\s]")[0];
         long chatId = update.message().chat().id();
+        String text = update.message().text().split("[@\\s]")[0];
 
-        log.atInfo().addKeyValue("command", text).addKeyValue("chatId", chatId).log("Received command");
+        MDC.put("chatId", String.valueOf(chatId));
+        MDC.put("command", text);
+        try {
+            log.atInfo().log("Received command");
 
-        Command command = commands.stream()
+            Command command = commands.stream()
                 .filter(c -> c.command().equals(text))
                 .findFirst()
-                .orElse(unknownCommand);
+                .orElseGet(() -> commands.stream()// check if user is in the dialog (e.g. after /track)
+                    .filter(Command::isStateful)
+                    .findFirst()
+                    .orElse(unknownCommand));
 
-        return command.handle(update);
+            return command.handle(update);
+        } finally {
+            MDC.clear();
+        }
     }
 }
