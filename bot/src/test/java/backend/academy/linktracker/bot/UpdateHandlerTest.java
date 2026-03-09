@@ -2,6 +2,7 @@ package backend.academy.linktracker.bot;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -9,6 +10,7 @@ import backend.academy.linktracker.bot.command.HelpCommand;
 import backend.academy.linktracker.bot.command.StartCommand;
 import backend.academy.linktracker.bot.command.UnknownCommand;
 import backend.academy.linktracker.bot.handler.UpdateHandler;
+import backend.academy.linktracker.bot.model.UserState;
 import backend.academy.linktracker.bot.service.UserService;
 import com.pengrad.telegrambot.model.Chat;
 import com.pengrad.telegrambot.model.Message;
@@ -35,8 +37,8 @@ class UpdateHandlerTest {
         var unknownCommand = new UnknownCommand();
 
         var helpCommand = new HelpCommand(List.of(startCommand));
-
-        handler = new UpdateHandler(List.of(startCommand, helpCommand), unknownCommand);
+        when(userService.getState(anyLong())).thenReturn(UserState.IDLE);
+        handler = new UpdateHandler(List.of(startCommand, helpCommand), unknownCommand, userService);
     }
 
     // Helper to build a fake Update with given text and chatId
