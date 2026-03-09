@@ -1,0 +1,69 @@
+syntax = "proto3";
+
+option java_package = "backend.academy.linktracker.grpc";
+option java_multiple_files = true;
+
+package linktracker;
+
+service ScrapperService {
+    rpc RegisterChat (RegisterChatRequest) returns (RegisterChatResponse);
+    rpc DeleteChat (DeleteChatRequest) returns (DeleteChatResponse);
+    rpc TrackLink (TrackLinkRequest) returns (TrackLinkResponse);
+    rpc UntrackLink (UntrackLinkRequest) returns (UntrackLinkResponse);
+    rpc ListLinks (ListLinksRequest) returns (ListLinksResponse);
+}
+
+message RegisterChatRequest {
+    int64 chat_id = 1;
+}
+
+message RegisterChatResponse {
+    bool success = 1;
+}
+
+message DeleteChatRequest {
+    int64 chat_id = 1;
+}
+
+message DeleteChatResponse {
+    bool success = 1;
+}
+
+message TrackLinkRequest {
+    int64 chat_id = 1;
+    string url = 2;
+    repeated string tags = 3;
+    repeated string filters = 4;
+}
+
+message TrackLinkResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+message UntrackLinkRequest {
+    int64 chat_id = 1;
+    string url = 2;
+}
+
+message UntrackLinkResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+message ListLinksRequest {
+    int64 chat_id = 1;
+    string tag_filter = 2;
+}
+
+message ListLinksResponse {
+    repeated LinkItem links = 1;
+    string message = 2;
+}
+
+message LinkItem {
+    int64 id = 1;
+    string url = 2;
+    repeated string tags = 3;
+    repeated string filters = 4;
+}

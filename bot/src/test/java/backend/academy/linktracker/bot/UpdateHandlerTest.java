@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import backend.academy.linktracker.bot.command.HelpCommand;
 import backend.academy.linktracker.bot.command.StartCommand;
 import backend.academy.linktracker.bot.command.UnknownCommand;
+import backend.academy.linktracker.bot.grpc.ScrapperGrpcClient;
 import backend.academy.linktracker.bot.handler.UpdateHandler;
 import backend.academy.linktracker.bot.model.UserState;
 import backend.academy.linktracker.bot.service.UserService;
@@ -31,13 +32,15 @@ class UpdateHandlerTest {
 
     UpdateHandler handler;
 
+    @Mock
+    ScrapperGrpcClient scrapperGrpcClient;
+
     @BeforeEach
     void setUp() {
-        var startCommand = new StartCommand(userService);
+        var startCommand = new StartCommand(userService, scrapperGrpcClient);
         var unknownCommand = new UnknownCommand();
-
         var helpCommand = new HelpCommand(List.of(startCommand));
-        when(userService.getState(anyLong())).thenReturn(UserState.IDLE);
+
         handler = new UpdateHandler(List.of(startCommand, helpCommand), unknownCommand, userService);
     }
 

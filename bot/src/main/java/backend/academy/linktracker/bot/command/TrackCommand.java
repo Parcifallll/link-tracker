@@ -1,5 +1,6 @@
 package backend.academy.linktracker.bot.command;
 
+import backend.academy.linktracker.bot.grpc.ScrapperGrpcClient;
 import backend.academy.linktracker.bot.model.UserState;
 import backend.academy.linktracker.bot.service.UserService;
 import com.pengrad.telegrambot.model.Update;
@@ -16,6 +17,7 @@ import java.util.Set;
 public class TrackCommand implements Command {
 
     private final UserService userService;
+    private final ScrapperGrpcClient scrapperGrpcClient;
 
     @Override
     public String command() {
@@ -89,7 +91,7 @@ public class TrackCommand implements Command {
     }
 
     private SendMessage handleWaitingFilters(long chatId, String text) {
-        List<String> filters = text.equals("skip")
+        List<String> filters = text.equals("/skip")
             ? List.of()
             : Arrays.stream(text.split(","))
             .map(String::trim)
@@ -101,7 +103,15 @@ public class TrackCommand implements Command {
         userService.setFilters(chatId, filters);
         userService.resetSession(chatId);
 
-        // TODO: POST /links to scrapper with link, tags, filters
-        return new SendMessage(chatId, "Link " + link + " is now being tracked!");
+        try {
+            scrapperGrpcClient.trackLink(chatId, link.toString(), tags, filters);
+            return new SendMessage(chatId, "Link " + link + " is now being tracked!");
+        } catch (io.grpc.StatusRuntimeException e) {
+            return switch (e.getStatus().getCode()) {
+                case ALREADY_EXISTS -> new SendMessage(chatId, "Link is already tracked");
+                case NOT_FOUND -> new SendMessage(chatId, "Chat not found. Please use /start first");
+                default -> new SendMessage(chatId, "Error adding link. Please try again");
+            };
+        }
     }
 }

@@ -1,5 +1,6 @@
 package backend.academy.linktracker.bot.command;
 
+import backend.academy.linktracker.bot.grpc.ScrapperGrpcClient;
 import backend.academy.linktracker.bot.model.UserState;
 import backend.academy.linktracker.bot.service.UserService;
 import com.pengrad.telegrambot.model.Update;
@@ -14,6 +15,7 @@ import java.util.Set;
 public class UntrackCommand implements Command {
 
     private final UserService userService;
+    private final ScrapperGrpcClient scrapperGrpcClient;
 
     @Override
     public String command() {
@@ -42,8 +44,9 @@ public class UntrackCommand implements Command {
 
         return switch (state) {
             case IDLE -> handleIdle(chatId);
-            case WAITING_UNTRACK_LINK -> handleWaitingLink(chatId, update.message().text());
-            case WAITING_LINK, WAITING_TAGS, WAITING_FILTERS  -> new SendMessage(chatId, "Please use /cancel first");
+            case WAITING_UNTRACK_LINK ->
+                handleWaitingLink(chatId, update.message().text());
+            case WAITING_LINK, WAITING_TAGS, WAITING_FILTERS -> new SendMessage(chatId, "Please use /cancel first");
         };
     }
 
@@ -59,8 +62,13 @@ public class UntrackCommand implements Command {
         try {
             URI uri = URI.create(text);
             userService.resetSession(chatId);
-            // TODO: send delete request to scrapper via HTTP dto
+            scrapperGrpcClient.untrackLink(chatId, uri.toString());
             return new SendMessage(chatId, "Link " + uri + " is no longer tracked!");
+        } catch (io.grpc.StatusRuntimeException e) {
+            return switch (e.getStatus().getCode()) {
+                case NOT_FOUND -> new SendMessage(chatId, "Link not found or chat not registered");
+                default -> new SendMessage(chatId, "Error removing link. Please try again");
+            };
         } catch (IllegalArgumentException e) {
             return new SendMessage(chatId, "Invalid link. Please send a valid URL");
         }

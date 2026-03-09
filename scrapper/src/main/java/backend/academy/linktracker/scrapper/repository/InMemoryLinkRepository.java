@@ -43,9 +43,7 @@ public class InMemoryLinkRepository implements LinkRepository {
     }
 
     @Override
-    public List<Link> findAllLinks() {
-        return links.values().stream()
-            .flatMap(List::stream)
-            .toList();
+    public Map<Long, List<Link>> findAllWithChatIds() {
+        return Map.copyOf(links);
     }
 }

@@ -1,6 +1,5 @@
 package backend.academy.linktracker.scrapper.configuration;
 
-import backend.academy.linktracker.scrapper.client.bot.BotClient;
 import backend.academy.linktracker.scrapper.client.github.GithubClient;
 import backend.academy.linktracker.scrapper.client.stackoverflow.StackOverflowClient;
 import backend.academy.linktracker.scrapper.properties.BotProperties;
@@ -36,16 +35,5 @@ public class ScrapperConfiguration {
             .builderFor(RestClientAdapter.create(restClient))
             .build()
             .createClient(StackOverflowClient.class);
-    }
-
-    @Bean
-    public BotClient botClient(BotProperties properties) {
-        RestClient restClient = RestClient.builder()
-            .baseUrl(properties.getUrl())
-            .build();
-        return HttpServiceProxyFactory
-            .builderFor(RestClientAdapter.create(restClient))
-            .build()
-            .createClient(BotClient.class);
     }
 }
