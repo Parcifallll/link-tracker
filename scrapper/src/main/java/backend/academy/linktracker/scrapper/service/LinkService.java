@@ -6,10 +6,10 @@ import backend.academy.linktracker.scrapper.exception.LinkNotFoundException;
 import backend.academy.linktracker.scrapper.model.Link;
 import backend.academy.linktracker.scrapper.repository.ChatRepository;
 import backend.academy.linktracker.scrapper.repository.LinkRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 import java.net.URI;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
@@ -32,8 +32,7 @@ public class LinkService {
         if (!chatRepository.exists(chatId)) {
             throw new ChatNotFoundException(chatId);
         }
-        Link link = linkRepository.findByUrl(chatId, url)
-            .orElseThrow(() -> new LinkNotFoundException(url));
+        Link link = linkRepository.findByUrl(chatId, url).orElseThrow(() -> new LinkNotFoundException(url));
         linkRepository.delete(chatId, url);
         return link;
     }

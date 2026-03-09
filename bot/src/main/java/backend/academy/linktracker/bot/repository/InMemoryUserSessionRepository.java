@@ -1,8 +1,8 @@
 package backend.academy.linktracker.bot.repository;
 
 import backend.academy.linktracker.bot.model.UserSession;
-import org.springframework.stereotype.Repository;
 import java.util.concurrent.ConcurrentHashMap;
+import org.springframework.stereotype.Repository;
 
 @Repository
 public class InMemoryUserSessionRepository implements UserSessionRepository {

@@ -31,9 +31,7 @@ public class ScrapperGrpcClient {
         MDC.put("chatId", String.valueOf(chatId));
         try {
             log.atInfo().log("Registering chat via gRPC");
-            stub.registerChat(RegisterChatRequest.newBuilder()
-                .setChatId(chatId)
-                .build());
+            stub.registerChat(RegisterChatRequest.newBuilder().setChatId(chatId).build());
         } catch (Exception e) {
             log.atError().addKeyValue("error", e.getMessage()).log("RegisterChat gRPC error");
             throw e;
@@ -46,9 +44,7 @@ public class ScrapperGrpcClient {
         MDC.put("chatId", String.valueOf(chatId));
         try {
             log.atInfo().log("Deleting chat via gRPC");
-            stub.deleteChat(DeleteChatRequest.newBuilder()
-                .setChatId(chatId)
-                .build());
+            stub.deleteChat(DeleteChatRequest.newBuilder().setChatId(chatId).build());
         } catch (Exception e) {
             log.atError().addKeyValue("error", e.getMessage()).log("DeleteChat gRPC error");
             throw e;
@@ -63,11 +59,11 @@ public class ScrapperGrpcClient {
         try {
             log.atInfo().log("Tracking link via gRPC");
             return stub.trackLink(TrackLinkRequest.newBuilder()
-                .setChatId(chatId)
-                .setUrl(url)
-                .addAllTags(tags)
-                .addAllFilters(filters)
-                .build());
+                    .setChatId(chatId)
+                    .setUrl(url)
+                    .addAllTags(tags)
+                    .addAllFilters(filters)
+                    .build());
         } catch (Exception e) {
             log.atError().addKeyValue("error", e.getMessage()).log("TrackLink gRPC error");
             throw e;
@@ -82,9 +78,9 @@ public class ScrapperGrpcClient {
         try {
             log.atInfo().log("Untracking link via gRPC");
             return stub.untrackLink(UntrackLinkRequest.newBuilder()
-                .setChatId(chatId)
-                .setUrl(url)
-                .build());
+                    .setChatId(chatId)
+                    .setUrl(url)
+                    .build());
         } catch (Exception e) {
             log.atError().addKeyValue("error", e.getMessage()).log("UntrackLink gRPC error");
             throw e;
@@ -98,14 +94,23 @@ public class ScrapperGrpcClient {
         try {
             log.atInfo().log("Listing links via gRPC");
             return stub.listLinks(ListLinksRequest.newBuilder()
-                .setChatId(chatId)
-                .setTagFilter(tagFilter != null ? tagFilter : "")
-                .build());
+                    .setChatId(chatId)
+                    .setTagFilter(tagFilter != null ? tagFilter : "")
+                    .build());
         } catch (Exception e) {
             log.atError().addKeyValue("error", e.getMessage()).log("ListLinks gRPC error");
             throw e;
         } finally {
             MDC.clear();
+        }
+    }
+
+    public boolean linkExists(long chatId, String url) {
+        try {
+            ListLinksResponse response = listLinks(chatId, null);
+            return response.getLinksList().stream().anyMatch(l -> l.getUrl().equals(url));
+        } catch (Exception e) {
+            return false;
         }
     }
 }

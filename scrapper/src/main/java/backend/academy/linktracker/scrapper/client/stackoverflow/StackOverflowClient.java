@@ -10,10 +10,5 @@ import org.springframework.web.service.annotation.HttpExchange;
 public interface StackOverflowClient {
 
     @GetExchange("/questions/{id}")
-    StackOverflowResponse getQuestion(
-        @PathVariable long id,
-        @RequestParam String site,
-        @RequestParam String key,
-        @RequestParam("access_token") String accessToken
-    );
+    StackOverflowResponse getQuestion(@PathVariable long id, @RequestParam String site, @RequestParam String key);
 }

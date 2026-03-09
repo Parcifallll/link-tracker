@@ -29,15 +29,12 @@ public class LinkController {
     private final LinkService linkService;
 
     @GetMapping
-    public ResponseEntity<ListLinksResponse> getLinks(
-        @RequestHeader("Tg-Chat-Id") long chatId
-    ) {
+    public ResponseEntity<ListLinksResponse> getLinks(@RequestHeader("Tg-Chat-Id") long chatId) {
         MDC.put("chatId", String.valueOf(chatId));
         try {
             log.atInfo().log("Getting links");
-            List<LinkResponse> links = linkService.findAll(chatId).stream()
-                .map(this::toResponse)
-                .toList();
+            List<LinkResponse> links =
+                    linkService.findAll(chatId).stream().map(this::toResponse).toList();
             return ResponseEntity.ok(new ListLinksResponse(links, links.size()));
         } finally {
             MDC.clear();
@@ -46,9 +43,7 @@ public class LinkController {
 
     @PostMapping
     public ResponseEntity<LinkResponse> addLink(
-        @RequestHeader("Tg-Chat-Id") long chatId,
-        @Valid @RequestBody AddLinkRequest request
-    ) {
+            @RequestHeader("Tg-Chat-Id") long chatId, @Valid @RequestBody AddLinkRequest request) {
         MDC.put("chatId", String.valueOf(chatId));
         MDC.put("url", request.link().toString());
         try {
@@ -62,9 +57,7 @@ public class LinkController {
 
     @DeleteMapping
     public ResponseEntity<LinkResponse> removeLink(
-        @RequestHeader("Tg-Chat-Id") long chatId,
-        @Valid @RequestBody RemoveLinkRequest request
-    ) {
+            @RequestHeader("Tg-Chat-Id") long chatId, @Valid @RequestBody RemoveLinkRequest request) {
         MDC.put("chatId", String.valueOf(chatId));
         MDC.put("url", request.link().toString());
         try {

@@ -29,19 +29,17 @@ public class LinkScheduler {
 
         Map<Long, List<Link>> linksByChatId = linkRepository.findAllWithChatIds();
 
-        linksByChatId.forEach((chatId, links) ->
-            links.forEach(link -> {
-                MDC.put("chatId", String.valueOf(chatId));
-                MDC.put("url", link.getUrl().toString());
-                try {
-                    if (linkUpdateService.hasUpdate(link)) {
-                        log.atInfo().log("Update detected, notifying bot via gRPC");
-                        botUpdateGrpcClient.sendUpdate(link, List.of(chatId));
-                    }
-                } finally {
-                    MDC.clear();
+        linksByChatId.forEach((chatId, links) -> links.forEach(link -> {
+            MDC.put("chatId", String.valueOf(chatId));
+            MDC.put("url", link.getUrl().toString());
+            try {
+                if (linkUpdateService.hasUpdate(link)) {
+                    log.atInfo().log("Update detected, notifying bot via gRPC");
+                    botUpdateGrpcClient.sendUpdate(link, List.of(chatId));
                 }
-            })
-        );
+            } finally {
+                MDC.clear();
+            }
+        }));
     }
 }

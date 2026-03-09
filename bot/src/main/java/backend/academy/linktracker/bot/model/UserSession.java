@@ -1,10 +1,9 @@
 package backend.academy.linktracker.bot.model;
 
-import lombok.Getter;
-import lombok.Setter;
-import org.springframework.stereotype.Component;
 import java.net.URI;
 import java.util.List;
+import lombok.Getter;
+import lombok.Setter;
 
 @Getter
 @Setter

@@ -38,8 +38,8 @@ public class InMemoryLinkRepository implements LinkRepository {
     @Override
     public Optional<Link> findByUrl(long chatId, URI url) {
         return links.getOrDefault(chatId, List.of()).stream()
-            .filter(l -> l.getUrl().equals(url))
-            .findFirst();
+                .filter(l -> l.getUrl().equals(url))
+                .findFirst();
     }
 
     @Override

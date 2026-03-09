@@ -25,16 +25,16 @@ public class BotUpdateGrpcService extends BotUpdateServiceGrpc.BotUpdateServiceI
             log.atInfo().log("Received update via gRPC");
             request.getTgChatIdsList().forEach(chatId -> {
                 MDC.put("chatId", String.valueOf(chatId));
-                String text = "Update on link: " + request.getUrl()
-                    + (request.getDescription().isEmpty() ? "" : "\n" + request.getDescription());
+                String text = "Update on link: " + request.getUrl();
                 bot.execute(new SendMessage(chatId, text));
             });
-            responseObserver.onNext(SendUpdateResponse.newBuilder().setSuccess(true).build());
+            responseObserver.onNext(
+                    SendUpdateResponse.newBuilder().setSuccess(true).build());
             responseObserver.onCompleted();
         } catch (Exception e) {
             log.atError().addKeyValue("error", e.getMessage()).log("SendUpdate error");
-            responseObserver.onError(io.grpc.Status.INTERNAL
-                .withDescription("Internal error").asRuntimeException());
+            responseObserver.onError(
+                    io.grpc.Status.INTERNAL.withDescription("Internal error").asRuntimeException());
         } finally {
             MDC.clear();
         }

@@ -26,11 +26,11 @@ public class BotUpdateGrpcClient {
         try {
             log.atInfo().log("Sending update to bot via gRPC");
             SendUpdateRequest request = SendUpdateRequest.newBuilder()
-                .setId(link.getId())
-                .setUrl(link.getUrl().toString())
-                .setDescription("Link updated: " + link.getUrl())
-                .addAllTgChatIds(chatIds)
-                .build();
+                    .setId(link.getId())
+                    .setUrl(link.getUrl().toString())
+                    .setDescription("Link updated: " + link.getUrl())
+                    .addAllTgChatIds(chatIds)
+                    .build();
             stub.sendUpdate(request);
         } catch (Exception e) {
             log.atError().addKeyValue("error", e.getMessage()).log("Failed to send update to bot");

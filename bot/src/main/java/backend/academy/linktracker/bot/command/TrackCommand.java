@@ -5,12 +5,12 @@ import backend.academy.linktracker.bot.model.UserState;
 import backend.academy.linktracker.bot.service.UserService;
 import com.pengrad.telegrambot.model.Update;
 import com.pengrad.telegrambot.request.SendMessage;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
@@ -53,7 +53,8 @@ public class TrackCommand implements Command {
             case IDLE -> handleIdle(chatId);
             case WAITING_LINK -> handleWaitingLink(chatId, update.message().text());
             case WAITING_TAGS -> handleWaitingTags(chatId, update.message().text());
-            case WAITING_FILTERS -> handleWaitingFilters(chatId, update.message().text());
+            case WAITING_FILTERS ->
+                handleWaitingFilters(chatId, update.message().text());
             case WAITING_UNTRACK_LINK -> new SendMessage(chatId, "Please use /cancel first");
         };
     }
@@ -69,6 +70,10 @@ public class TrackCommand implements Command {
         }
         try {
             URI uri = URI.create(text);
+            if (scrapperGrpcClient.linkExists(chatId, uri.toString())) {
+                userService.resetSession(chatId);
+                return new SendMessage(chatId, "Ссылка уже отслеживается");
+            }
             userService.setPendingLink(chatId, uri);
             userService.setState(chatId, UserState.WAITING_TAGS);
             return new SendMessage(chatId, "Send tags separated by comma, or \"skip\"");
@@ -78,12 +83,12 @@ public class TrackCommand implements Command {
     }
 
     private SendMessage handleWaitingTags(long chatId, String text) {
-        List<String> tags = text.equals("skip")
-            ? List.of()
-            : Arrays.stream(text.split(","))
-            .map(String::trim)
-            .filter(t -> !t.isEmpty())
-            .toList();
+        List<String> tags = text.equalsIgnoreCase("skip")
+                ? List.of()
+                : Arrays.stream(text.split(","))
+                        .map(String::trim)
+                        .filter(t -> !t.isEmpty())
+                        .toList();
 
         userService.setTags(chatId, tags);
         userService.setState(chatId, UserState.WAITING_FILTERS);
@@ -91,12 +96,12 @@ public class TrackCommand implements Command {
     }
 
     private SendMessage handleWaitingFilters(long chatId, String text) {
-        List<String> filters = text.equals("/skip")
-            ? List.of()
-            : Arrays.stream(text.split(","))
-            .map(String::trim)
-            .filter(f -> !f.isEmpty())
-            .toList();
+        List<String> filters = text.equalsIgnoreCase("skip")
+                ? List.of()
+                : Arrays.stream(text.split(","))
+                        .map(String::trim)
+                        .filter(f -> !f.isEmpty())
+                        .toList();
 
         URI link = userService.getPendingLink(chatId);
         List<String> tags = userService.getTags(chatId);

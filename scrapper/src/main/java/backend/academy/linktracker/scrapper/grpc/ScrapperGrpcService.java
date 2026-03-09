@@ -42,15 +42,16 @@ public class ScrapperGrpcService extends ScrapperServiceGrpc.ScrapperServiceImpl
         try {
             log.atInfo().log("Registering chat via gRPC");
             chatService.register(request.getChatId());
-            responseObserver.onNext(RegisterChatResponse.newBuilder().setSuccess(true).build());
+            responseObserver.onNext(
+                    RegisterChatResponse.newBuilder().setSuccess(true).build());
             responseObserver.onCompleted();
         } catch (ChatAlreadyExistsException e) {
-            responseObserver.onError(Status.ALREADY_EXISTS
-                .withDescription(e.getMessage()).asRuntimeException());
+            responseObserver.onError(
+                    Status.ALREADY_EXISTS.withDescription(e.getMessage()).asRuntimeException());
         } catch (Exception e) {
             log.atError().addKeyValue("error", e.getMessage()).log("RegisterChat error");
-            responseObserver.onError(Status.INTERNAL
-                .withDescription("Internal error").asRuntimeException());
+            responseObserver.onError(
+                    Status.INTERNAL.withDescription("Internal error").asRuntimeException());
         } finally {
             MDC.clear();
         }
@@ -62,15 +63,16 @@ public class ScrapperGrpcService extends ScrapperServiceGrpc.ScrapperServiceImpl
         try {
             log.atInfo().log("Deleting chat via gRPC");
             chatService.delete(request.getChatId());
-            responseObserver.onNext(DeleteChatResponse.newBuilder().setSuccess(true).build());
+            responseObserver.onNext(
+                    DeleteChatResponse.newBuilder().setSuccess(true).build());
             responseObserver.onCompleted();
         } catch (ChatNotFoundException e) {
-            responseObserver.onError(Status.NOT_FOUND
-                .withDescription(e.getMessage()).asRuntimeException());
+            responseObserver.onError(
+                    Status.NOT_FOUND.withDescription(e.getMessage()).asRuntimeException());
         } catch (Exception e) {
             log.atError().addKeyValue("error", e.getMessage()).log("DeleteChat error");
-            responseObserver.onError(Status.INTERNAL
-                .withDescription("Internal error").asRuntimeException());
+            responseObserver.onError(
+                    Status.INTERNAL.withDescription("Internal error").asRuntimeException());
         } finally {
             MDC.clear();
         }
@@ -83,26 +85,22 @@ public class ScrapperGrpcService extends ScrapperServiceGrpc.ScrapperServiceImpl
         try {
             log.atInfo().log("Tracking link via gRPC");
             linkService.add(
-                request.getChatId(),
-                URI.create(request.getUrl()),
-                request.getTagsList(),
-                request.getFiltersList()
-            );
+                    request.getChatId(), URI.create(request.getUrl()), request.getTagsList(), request.getFiltersList());
             responseObserver.onNext(TrackLinkResponse.newBuilder()
-                .setSuccess(true)
-                .setMessage("Link is now being tracked")
-                .build());
+                    .setSuccess(true)
+                    .setMessage("Link is now being tracked")
+                    .build());
             responseObserver.onCompleted();
         } catch (ChatNotFoundException e) {
-            responseObserver.onError(Status.NOT_FOUND
-                .withDescription(e.getMessage()).asRuntimeException());
+            responseObserver.onError(
+                    Status.NOT_FOUND.withDescription(e.getMessage()).asRuntimeException());
         } catch (LinkAlreadyExistsException e) {
-            responseObserver.onError(Status.ALREADY_EXISTS
-                .withDescription(e.getMessage()).asRuntimeException());
+            responseObserver.onError(
+                    Status.ALREADY_EXISTS.withDescription(e.getMessage()).asRuntimeException());
         } catch (Exception e) {
             log.atError().addKeyValue("error", e.getMessage()).log("TrackLink error");
-            responseObserver.onError(Status.INTERNAL
-                .withDescription("Internal error").asRuntimeException());
+            responseObserver.onError(
+                    Status.INTERNAL.withDescription("Internal error").asRuntimeException());
         } finally {
             MDC.clear();
         }
@@ -116,17 +114,17 @@ public class ScrapperGrpcService extends ScrapperServiceGrpc.ScrapperServiceImpl
             log.atInfo().log("Untracking link via gRPC");
             linkService.remove(request.getChatId(), URI.create(request.getUrl()));
             responseObserver.onNext(UntrackLinkResponse.newBuilder()
-                .setSuccess(true)
-                .setMessage("Link is no longer tracked")
-                .build());
+                    .setSuccess(true)
+                    .setMessage("Link is no longer tracked")
+                    .build());
             responseObserver.onCompleted();
         } catch (ChatNotFoundException | LinkNotFoundException e) {
-            responseObserver.onError(Status.NOT_FOUND
-                .withDescription(e.getMessage()).asRuntimeException());
+            responseObserver.onError(
+                    Status.NOT_FOUND.withDescription(e.getMessage()).asRuntimeException());
         } catch (Exception e) {
             log.atError().addKeyValue("error", e.getMessage()).log("UntrackLink error");
-            responseObserver.onError(Status.INTERNAL
-                .withDescription("Internal error").asRuntimeException());
+            responseObserver.onError(
+                    Status.INTERNAL.withDescription("Internal error").asRuntimeException());
         } finally {
             MDC.clear();
         }
@@ -143,31 +141,31 @@ public class ScrapperGrpcService extends ScrapperServiceGrpc.ScrapperServiceImpl
             String tagFilter = request.getTagFilter().isEmpty() ? null : request.getTagFilter();
             if (tagFilter != null) {
                 links = links.stream()
-                    .filter(l -> l.getTags() != null && l.getTags().contains(tagFilter))
-                    .toList();
+                        .filter(l -> l.getTags() != null && l.getTags().contains(tagFilter))
+                        .toList();
             }
 
             List<LinkItem> items = links.stream()
-                .map(l -> LinkItem.newBuilder()
-                    .setId(l.getId())
-                    .setUrl(l.getUrl().toString())
-                    .addAllTags(l.getTags() != null ? l.getTags() : List.of())
-                    .addAllFilters(l.getFilters() != null ? l.getFilters() : List.of())
-                    .build())
-                .toList();
+                    .map(l -> LinkItem.newBuilder()
+                            .setId(l.getId())
+                            .setUrl(l.getUrl().toString())
+                            .addAllTags(l.getTags() != null ? l.getTags() : List.of())
+                            .addAllFilters(l.getFilters() != null ? l.getFilters() : List.of())
+                            .build())
+                    .toList();
 
             responseObserver.onNext(ListLinksResponse.newBuilder()
-                .addAllLinks(items)
-                .setMessage(items.isEmpty() ? "No tracked links" : "OK")
-                .build());
+                    .addAllLinks(items)
+                    .setMessage(items.isEmpty() ? "No tracked links" : "OK")
+                    .build());
             responseObserver.onCompleted();
         } catch (ChatNotFoundException e) {
-            responseObserver.onError(Status.NOT_FOUND
-                .withDescription(e.getMessage()).asRuntimeException());
+            responseObserver.onError(
+                    Status.NOT_FOUND.withDescription(e.getMessage()).asRuntimeException());
         } catch (Exception e) {
             log.atError().addKeyValue("error", e.getMessage()).log("ListLinks error");
-            responseObserver.onError(Status.INTERNAL
-                .withDescription("Internal error").asRuntimeException());
+            responseObserver.onError(
+                    Status.INTERNAL.withDescription("Internal error").asRuntimeException());
         } finally {
             MDC.clear();
         }

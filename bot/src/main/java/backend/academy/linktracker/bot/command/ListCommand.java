@@ -49,9 +49,9 @@ public class ListCommand implements Command {
             }
 
             String formatted = links.stream()
-                .map(link -> "• " + link.getUrl()
-                    + (link.getTagsList().isEmpty() ? "" : " [" + String.join(", ", link.getTagsList()) + "]"))
-                .collect(Collectors.joining("\n"));
+                    .map(link -> "• " + link.getUrl()
+                            + (link.getTagsList().isEmpty() ? "" : " [" + String.join(", ", link.getTagsList()) + "]"))
+                    .collect(Collectors.joining("\n"));
 
             return new SendMessage(chatId, "Your tracked links:\n" + formatted);
         } catch (io.grpc.StatusRuntimeException e) {

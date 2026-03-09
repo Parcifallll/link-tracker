@@ -33,9 +33,7 @@ public class LinkUpdateService {
             }
             return false;
         } catch (Exception e) {
-            log.atError()
-                .addKeyValue("error", e.getMessage())
-                .log("Failed to check link update");
+            log.atError().addKeyValue("error", e.getMessage()).log("Failed to check link update");
             return false;
         } finally {
             MDC.clear();
@@ -68,18 +66,14 @@ public class LinkUpdateService {
         }
         long questionId = Long.parseLong(parts[2]);
 
-        Instant lastActivity = stackOverflowClient
-            .getQuestion(
-                questionId,
-                "stackoverflow",
-                stackoverflowProperties.getKey(),
-                stackoverflowProperties.getAccessToken()
-            )
-            .items()
-            .stream()
-            .findFirst()
-            .map(item -> item.lastActivityDate())
-            .orElse(Instant.MIN);
+        Instant lastActivity =
+                stackOverflowClient
+                        .getQuestion(questionId, "stackoverflow", stackoverflowProperties.getKey())
+                        .items()
+                        .stream()
+                        .findFirst()
+                        .map(item -> item.lastActivityDate())
+                        .orElse(Instant.MIN);
 
         boolean hasUpdate = lastActivity.isAfter(link.getLastCheckedAt());
 

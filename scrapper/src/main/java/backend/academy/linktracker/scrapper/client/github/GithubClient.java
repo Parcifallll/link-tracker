@@ -9,7 +9,6 @@ public interface GithubClient {
 
     @GetExchange("/repos/{owner}/{repo}")
     GithubRepositoryResponse getRepository(
-        @org.springframework.web.bind.annotation.PathVariable String owner,
-        @org.springframework.web.bind.annotation.PathVariable String repo
-    );
+            @org.springframework.web.bind.annotation.PathVariable String owner,
+            @org.springframework.web.bind.annotation.PathVariable String repo);
 }

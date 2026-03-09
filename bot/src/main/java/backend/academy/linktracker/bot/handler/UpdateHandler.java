@@ -2,7 +2,6 @@ package backend.academy.linktracker.bot.handler;
 
 import backend.academy.linktracker.bot.command.Command;
 import backend.academy.linktracker.bot.command.UnknownCommand;
-import backend.academy.linktracker.bot.model.UserSession;
 import backend.academy.linktracker.bot.model.UserState;
 import backend.academy.linktracker.bot.service.UserService;
 import com.pengrad.telegrambot.model.Update;
@@ -45,12 +44,12 @@ public class UpdateHandler {
             }
 
             Command command = commands.stream()
-                .filter(c -> c.command().equals(text))
-                .findFirst()
-                .orElseGet(() -> commands.stream()
-                    .filter(c -> c.handledStates().contains(userService.getState(chatId)))
+                    .filter(c -> c.command().equals(text))
                     .findFirst()
-                    .orElse(unknownCommand));
+                    .orElseGet(() -> commands.stream()
+                            .filter(c -> c.handledStates().contains(userService.getState(chatId)))
+                            .findFirst()
+                            .orElse(unknownCommand));
 
             return command.handle(update);
         } finally {
