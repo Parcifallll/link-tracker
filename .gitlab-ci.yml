@@ -1,4 +1,4 @@
-image: "${GITLAB_DOCKER_PROXY}/eclipse-temurin:25-jdk-alpine"
+image: "${GITLAB_DOCKER_PROXY}/eclipse-temurin:25-jdk"
 
 variables:
   MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
@@ -22,8 +22,6 @@ cache:
 
 build:
   stage: build
-  before_script:
-    - rm -rf .m2/repository/io/grpc/protoc-gen-grpc-java
   script:
     - ./mvnw package -DskipTests=true -Djacoco.find=true
 
@@ -45,12 +43,12 @@ test:
     DOCKER_HOST: tcp://docker:2376
     DOCKER_TLS_CERTDIR: "/certs"
     DOCKER_TLS_VERIFY: 1
-    DOCKER_CERT_PATH: "${DOCKER_TLS_CERTDIR}/dto"
+    DOCKER_CERT_PATH: "${DOCKER_TLS_CERTDIR}/client"
     TESTCONTAINERS_HUB_IMAGE_NAME_PREFIX: "${GITLAB_DOCKER_PROXY}/"
   tags:
     - dind
   before_script:
-    - apk add --no-cache docker-cli
+    - apt-get update && apt-get install -y --no-install-recommends docker.io
     - echo "$CI_JOB_TOKEN" | docker login gitlab.education.tbank.ru:443 -u gitlab-ci-token --password-stdin
   script:
     - ./mvnw verify

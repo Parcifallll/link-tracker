@@ -5,10 +5,12 @@ import backend.academy.linktracker.bot.service.UserService;
 import com.pengrad.telegrambot.model.Update;
 import com.pengrad.telegrambot.request.SendMessage;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class StartCommand implements Command {
 
     private final UserService userService;
@@ -36,7 +38,7 @@ public class StartCommand implements Command {
         try {
             scrapperGrpcClient.registerChat(chatId);
         } catch (Exception e) {
-            // chat may already exist on scrapper restart
+            log.atDebug().addKeyValue("error", e.getMessage()).log("Chat already exists on scrapper");
         }
         return new SendMessage(chatId, message());
     }
