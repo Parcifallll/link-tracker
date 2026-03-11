@@ -22,6 +22,8 @@ cache:
 
 build:
   stage: build
+  before_script:
+    - rm -rf .m2/repository/io/grpc/protoc-gen-grpc-java
   script:
     - ./mvnw package -DskipTests=true -Djacoco.find=true
 
