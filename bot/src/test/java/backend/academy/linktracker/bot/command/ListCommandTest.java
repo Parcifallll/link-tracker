@@ -45,7 +45,6 @@ class ListCommandTest {
         return update;
     }
 
-    // TZ: /list, есть подписки -> список ссылок
     @Test
     void withLinks_returnsList() {
         var linkItem = LinkItem.newBuilder()
@@ -60,7 +59,6 @@ class ListCommandTest {
         assertTrue(response.getParameters().get("text").toString().contains("https://github.com/user/repo"));
     }
 
-    // TZ: /list, нет подписок -> сообщение "нет ссылок"
     @Test
     void noLinks_returnsEmptyMessage() {
         when(scrapperGrpcClient.listLinks(CHAT_ID, null))
@@ -71,7 +69,6 @@ class ListCommandTest {
         assertTrue(response.getParameters().get("text").toString().toLowerCase().contains("no tracked"));
     }
 
-    // TZ: /list <tag> -> передаёт тег в клиент
     @Test
     void withTagFilter_passesTagToClient() {
         when(scrapperGrpcClient.listLinks(CHAT_ID, "work"))
@@ -82,7 +79,6 @@ class ListCommandTest {
         verify(scrapperGrpcClient).listLinks(CHAT_ID, "work");
     }
 
-    // TZ: /list <tag>, есть подписки с тегом -> возвращает только их
     @Test
     void withTagFilter_returnsFilteredLinks() {
         var linkItem = LinkItem.newBuilder()

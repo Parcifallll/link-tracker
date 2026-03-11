@@ -26,7 +26,6 @@ class ScrapperControllerTest {
     @Autowired
     MockMvc mockMvc;
 
-    // Test 3.1: регистрация чата + добавление ссылки + получение ссылки
     @Test
     void addAndGetLink_returnsLink() throws Exception {
         mockMvc.perform(post("/tg-chat/1")).andExpect(status().isOk());
@@ -48,7 +47,6 @@ class ScrapperControllerTest {
                 .andExpect(jsonPath("$.links[*].url", hasItem("https://github.com/user/repo")));
     }
 
-    // Test 3.2: добавление + удаление ссылки -> ссылки нет в списке
     @Test
     void addAndDeleteLink_linkRemovedFromList() throws Exception {
         mockMvc.perform(post("/tg-chat/1")).andExpect(status().isOk());
@@ -80,7 +78,6 @@ class ScrapperControllerTest {
                 .andExpect(jsonPath("$.links[*].url", not(hasItem("https://github.com/user/repo"))));
     }
 
-    // Test 3.3: удаление ссылки из несуществующего чата -> 404, оригинальная ссылка сохранилась
     @Test
     void deleteLinkFromNonExistentChat_returns404_originalLinkPresent() throws Exception {
         mockMvc.perform(post("/tg-chat/1")).andExpect(status().isOk());
@@ -112,7 +109,6 @@ class ScrapperControllerTest {
                 .andExpect(jsonPath("$.links[*].url", hasItem("https://github.com/user/repo")));
     }
 
-    // Test 3.4: добавление ссылки в несуществующий чат -> не 200
     @Test
     void addLinkToNonExistentChat_returnsError() throws Exception {
         mockMvc.perform(post("/links")
@@ -128,7 +124,6 @@ class ScrapperControllerTest {
                 .andExpect(status().isNotFound());
     }
 
-    // Test 3.5: регистрация + удаление чата -> добавление ссылки не 200
     @Test
     void addLinkToDeletedChat_returnsError() throws Exception {
         mockMvc.perform(post("/tg-chat/1")).andExpect(status().isOk());
@@ -148,13 +143,11 @@ class ScrapperControllerTest {
                 .andExpect(status().isNotFound());
     }
 
-    // Test 3.6: удаление несуществующего чата -> 404
     @Test
     void deleteNonExistentChat_returns404() throws Exception {
         mockMvc.perform(delete("/tg-chat/99999")).andExpect(status().isNotFound());
     }
 
-    // дополнительно: повторная регистрация чата -> 409
     @Test
     void registerChatTwice_returns409() throws Exception {
         mockMvc.perform(post("/tg-chat/1")).andExpect(status().isOk());

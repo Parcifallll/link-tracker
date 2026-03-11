@@ -52,7 +52,6 @@ class UntrackCommandTest {
         return update;
     }
 
-    // /untrack -> запускает диалог, просит ссылку
     @Test
     void idle_startsDialog() {
         when(userService.getState(CHAT_ID)).thenReturn(UserState.IDLE);
@@ -61,7 +60,6 @@ class UntrackCommandTest {
         verify(userService).setState(CHAT_ID, UserState.WAITING_UNTRACK_LINK);
     }
 
-    // некорректная ссылка -> ошибка
     @Test
     void waitingLink_invalidUrl_returnsError() {
         when(userService.getState(CHAT_ID)).thenReturn(UserState.WAITING_UNTRACK_LINK);
@@ -70,7 +68,6 @@ class UntrackCommandTest {
         assertTrue(response.getParameters().get("text").toString().toLowerCase().contains("invalid"));
     }
 
-    // корректная ссылка -> удаляется, сессия сбрасывается
     @Test
     void waitingLink_validUrl_untracksLink() {
         when(userService.getState(CHAT_ID)).thenReturn(UserState.WAITING_UNTRACK_LINK);

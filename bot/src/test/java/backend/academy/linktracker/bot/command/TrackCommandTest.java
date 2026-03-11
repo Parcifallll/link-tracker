@@ -57,7 +57,6 @@ class TrackCommandTest {
         return update;
     }
 
-    // /track -> запускает диалог, просит ссылку
     @Test
     void idle_startsDialog() {
         when(userService.getState(CHAT_ID)).thenReturn(UserState.IDLE);
@@ -66,7 +65,6 @@ class TrackCommandTest {
         verify(userService).setState(CHAT_ID, UserState.WAITING_LINK);
     }
 
-    // TZ: некорректная ссылка -> бот уведомляет об ошибке
     @Test
     void waitingLink_invalidUrl_returnsError() {
         when(userService.getState(CHAT_ID)).thenReturn(UserState.WAITING_LINK);
@@ -76,7 +74,6 @@ class TrackCommandTest {
         verify(userService, never()).setState(CHAT_ID, UserState.WAITING_TAGS);
     }
 
-    // TZ: ссылка уже отслеживается -> уведомляет сразу, не спрашивает теги
     @Test
     void waitingLink_alreadyTracked_notifiesImmediately() {
         when(userService.getState(CHAT_ID)).thenReturn(UserState.WAITING_LINK);
@@ -89,7 +86,6 @@ class TrackCommandTest {
         verify(userService, never()).setState(CHAT_ID, UserState.WAITING_TAGS);
     }
 
-    // TZ: корректная ссылка -> сохраняется, переходим к тегам
     @Test
     void waitingLink_validUrl_proceedsToTags() {
         when(userService.getState(CHAT_ID)).thenReturn(UserState.WAITING_LINK);
@@ -101,7 +97,6 @@ class TrackCommandTest {
         verify(userService).setState(CHAT_ID, UserState.WAITING_TAGS);
     }
 
-    // теги -> сохраняются, переходим к фильтрам
     @Test
     void waitingTags_savesTags_proceedsToFilters() {
         when(userService.getState(CHAT_ID)).thenReturn(UserState.WAITING_TAGS);
@@ -111,7 +106,6 @@ class TrackCommandTest {
         verify(userService).setState(CHAT_ID, UserState.WAITING_FILTERS);
     }
 
-    // skip тегов -> пустой список
     @Test
     void waitingTags_skip_savesEmptyList() {
         when(userService.getState(CHAT_ID)).thenReturn(UserState.WAITING_TAGS);
@@ -119,7 +113,6 @@ class TrackCommandTest {
         verify(userService).setTags(CHAT_ID, List.of());
     }
 
-    // TZ: полный флоу -> ссылка трекается
     @Test
     void waitingFilters_tracksLink() {
         when(userService.getState(CHAT_ID)).thenReturn(UserState.WAITING_FILTERS);

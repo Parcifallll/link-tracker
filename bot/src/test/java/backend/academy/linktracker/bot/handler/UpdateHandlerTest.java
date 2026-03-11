@@ -89,7 +89,6 @@ class UpdateHandlerTest {
         assertTrue(response.getParameters().get("text").toString().contains("Unknown command"));
     }
 
-    // TZ: пользователь отправляет другую команду во время диалога -> сессия сбрасывается
     @Test
     void newCommandDuringDialog_resetsSession() {
         when(userService.getState(CHAT_ID)).thenReturn(UserState.WAITING_LINK);
@@ -97,7 +96,6 @@ class UpdateHandlerTest {
         verify(userService).resetSession(CHAT_ID);
     }
 
-    // /cancel -> сбрасывает сессию
     @Test
     void cancelCommand_resetsSession() {
         when(userService.getState(CHAT_ID)).thenReturn(UserState.WAITING_LINK);
@@ -105,7 +103,6 @@ class UpdateHandlerTest {
         verify(userService).resetSession(CHAT_ID);
     }
 
-    // null message -> возвращает null без исключения
     @Test
     void nullMessage_returnsNull() {
         var update = mock(Update.class);
@@ -114,7 +111,6 @@ class UpdateHandlerTest {
         assertTrue(response == null);
     }
 
-    // requiresRegistration: незарегистрированный пользователь -> просит /start
     @Test
     void unregisteredUser_commandRequiresRegistration_asksToStart() {
         when(userService.getState(CHAT_ID)).thenReturn(UserState.IDLE);
