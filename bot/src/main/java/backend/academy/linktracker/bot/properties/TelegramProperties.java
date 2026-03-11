@@ -21,7 +21,6 @@ import org.springframework.validation.annotation.Validated;
 public class TelegramProperties {
 
     @NotEmpty
-    @URL
     private String url;
 
     @NotEmpty

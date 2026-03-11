@@ -11,8 +11,6 @@ public class ScrapperApplication {
     public static void main(String[] args) {
         Dotenv dotenv = Dotenv.configure().directory("./").ignoreIfMissing().load();
         dotenv.entries().forEach(entry -> System.setProperty(entry.getKey(), entry.getValue()));
-
-        System.out.println("GITHUB_TOKEN loaded: " + (System.getProperty("GITHUB_TOKEN") != null));
         SpringApplication.run(ScrapperApplication.class, args);
     }
 }

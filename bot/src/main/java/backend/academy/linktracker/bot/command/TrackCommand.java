@@ -119,4 +119,9 @@ public class TrackCommand implements Command {
             };
         }
     }
+
+    @Override
+    public boolean requiresRegistration() {
+        return true;
+    }
 }

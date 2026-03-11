@@ -206,6 +206,15 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-pmd-plugin</artifactId>
+                <configuration>
+                    <excludeRoots>
+                        <excludeRoot>target/generated-sources/protobuf</excludeRoot>
+                    </excludeRoots>
+                </configuration>
+            </plugin>
             <!-- .proto gRPC compilation: -->
             <plugin>
                 <groupId>io.github.ascopes</groupId>

@@ -22,4 +22,9 @@ public interface Command {
     default Set<UserState> handledStates() {
         return Set.of();
     }
+
+    // "start" command
+    default boolean requiresRegistration() {
+        return false;
+    }
 }

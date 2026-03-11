@@ -40,16 +40,20 @@ public class UpdateHandler {
             // if user is in dialog and sends any command -> cancel session
             if (state != UserState.IDLE && text.startsWith("/") && !text.equals("/cancel")) {
                 userService.resetSession(chatId);
-                log.atInfo().log("Session reset due to new command");
             }
 
             Command command = commands.stream()
-                    .filter(c -> c.command().equals(text))
+                .filter(c -> c.command().equals(text))
+                .findFirst()
+                .orElseGet(() -> commands.stream()
+                    .filter(c -> c.handledStates().contains(userService.getState(chatId)))
                     .findFirst()
-                    .orElseGet(() -> commands.stream()
-                            .filter(c -> c.handledStates().contains(userService.getState(chatId)))
-                            .findFirst()
-                            .orElse(unknownCommand));
+                    .orElse(unknownCommand));
+
+            // check registration before executing
+            if (command.requiresRegistration() && userService.isNewUser(chatId)) {
+                return new SendMessage(chatId, "Please use /start first to register");
+            }
 
             return command.handle(update);
         } finally {

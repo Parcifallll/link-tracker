@@ -78,4 +78,9 @@ public class UntrackCommand implements Command {
     public Set<UserState> handledStates() {
         return Set.of(UserState.WAITING_UNTRACK_LINK);
     }
+
+    @Override
+    public boolean requiresRegistration() {
+        return true;
+    }
 }

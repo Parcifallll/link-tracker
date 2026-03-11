@@ -60,4 +60,6 @@
 
     <rule ref="category/java/performance.xml/BigIntegerInstantiation"/>
 
+    <exclude-pattern>.*/target/generated-sources/.*</exclude-pattern>
+
 </ruleset>
