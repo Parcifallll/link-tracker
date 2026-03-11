@@ -80,7 +80,8 @@ class TrackCommandTest {
     @Test
     void waitingLink_alreadyTracked_notifiesImmediately() {
         when(userService.getState(CHAT_ID)).thenReturn(UserState.WAITING_LINK);
-        when(scrapperGrpcClient.linkExists(CHAT_ID, "https://github.com/user/repo")).thenReturn(true);
+        when(scrapperGrpcClient.linkExists(CHAT_ID, "https://github.com/user/repo"))
+                .thenReturn(true);
         SendMessage response = trackCommand.handle(buildUpdate("https://github.com/user/repo"));
         assertNotNull(response);
         String text = response.getParameters().get("text").toString().toLowerCase();
@@ -92,7 +93,8 @@ class TrackCommandTest {
     @Test
     void waitingLink_validUrl_proceedsToTags() {
         when(userService.getState(CHAT_ID)).thenReturn(UserState.WAITING_LINK);
-        when(scrapperGrpcClient.linkExists(CHAT_ID, "https://github.com/user/repo")).thenReturn(false);
+        when(scrapperGrpcClient.linkExists(CHAT_ID, "https://github.com/user/repo"))
+                .thenReturn(false);
         SendMessage response = trackCommand.handle(buildUpdate("https://github.com/user/repo"));
         assertNotNull(response);
         verify(userService).setPendingLink(CHAT_ID, URI.create("https://github.com/user/repo"));

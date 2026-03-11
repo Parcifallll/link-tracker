@@ -49,11 +49,11 @@ class ListCommandTest {
     @Test
     void withLinks_returnsList() {
         var linkItem = LinkItem.newBuilder()
-            .setId(1L)
-            .setUrl("https://github.com/user/repo")
-            .build();
+                .setId(1L)
+                .setUrl("https://github.com/user/repo")
+                .build();
         when(scrapperGrpcClient.listLinks(CHAT_ID, null))
-            .thenReturn(ListLinksResponse.newBuilder().addLinks(linkItem).build());
+                .thenReturn(ListLinksResponse.newBuilder().addLinks(linkItem).build());
 
         SendMessage response = listCommand.handle(buildUpdate("/list"));
         assertNotNull(response);
@@ -64,7 +64,7 @@ class ListCommandTest {
     @Test
     void noLinks_returnsEmptyMessage() {
         when(scrapperGrpcClient.listLinks(CHAT_ID, null))
-            .thenReturn(ListLinksResponse.newBuilder().build());
+                .thenReturn(ListLinksResponse.newBuilder().build());
 
         SendMessage response = listCommand.handle(buildUpdate("/list"));
         assertNotNull(response);
@@ -75,7 +75,7 @@ class ListCommandTest {
     @Test
     void withTagFilter_passesTagToClient() {
         when(scrapperGrpcClient.listLinks(CHAT_ID, "work"))
-            .thenReturn(ListLinksResponse.newBuilder().build());
+                .thenReturn(ListLinksResponse.newBuilder().build());
 
         listCommand.handle(buildUpdate("/list work"));
 
@@ -86,12 +86,12 @@ class ListCommandTest {
     @Test
     void withTagFilter_returnsFilteredLinks() {
         var linkItem = LinkItem.newBuilder()
-            .setId(1L)
-            .setUrl("https://github.com/user/repo")
-            .addTags("work")
-            .build();
+                .setId(1L)
+                .setUrl("https://github.com/user/repo")
+                .addTags("work")
+                .build();
         when(scrapperGrpcClient.listLinks(CHAT_ID, "work"))
-            .thenReturn(ListLinksResponse.newBuilder().addLinks(linkItem).build());
+                .thenReturn(ListLinksResponse.newBuilder().addLinks(linkItem).build());
 
         SendMessage response = listCommand.handle(buildUpdate("/list work"));
         assertNotNull(response);

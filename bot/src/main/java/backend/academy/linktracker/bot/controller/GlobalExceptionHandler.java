@@ -31,14 +31,13 @@ public class GlobalExceptionHandler {
 
     private ApiErrorResponse buildResponse(String description, String code, Exception ex) {
         return new ApiErrorResponse(
-            description,
-            code,
-            ex.getClass().getSimpleName(),
-            ex.getMessage(),
-            Arrays.stream(ex.getStackTrace())
-                .map(StackTraceElement::toString)
-                .collect(Collectors.toList())
-        );
+                description,
+                code,
+                ex.getClass().getSimpleName(),
+                ex.getMessage(),
+                Arrays.stream(ex.getStackTrace())
+                        .map(StackTraceElement::toString)
+                        .collect(Collectors.toList()));
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)

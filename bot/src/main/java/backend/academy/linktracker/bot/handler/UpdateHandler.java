@@ -43,12 +43,12 @@ public class UpdateHandler {
             }
 
             Command command = commands.stream()
-                .filter(c -> c.command().equals(text))
-                .findFirst()
-                .orElseGet(() -> commands.stream()
-                    .filter(c -> c.handledStates().contains(userService.getState(chatId)))
+                    .filter(c -> c.command().equals(text))
                     .findFirst()
-                    .orElse(unknownCommand));
+                    .orElseGet(() -> commands.stream()
+                            .filter(c -> c.handledStates().contains(userService.getState(chatId)))
+                            .findFirst()
+                            .orElse(unknownCommand));
 
             // check registration before executing
             if (command.requiresRegistration() && userService.isNewUser(chatId)) {

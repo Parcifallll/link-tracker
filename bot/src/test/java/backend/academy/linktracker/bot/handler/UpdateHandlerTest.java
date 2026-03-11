@@ -16,7 +16,6 @@ import backend.academy.linktracker.bot.command.UntrackCommand;
 import backend.academy.linktracker.bot.grpc.ScrapperGrpcClient;
 import backend.academy.linktracker.bot.model.UserState;
 import backend.academy.linktracker.bot.service.UserService;
-import backend.academy.linktracker.grpc.ListLinksResponse;
 import com.pengrad.telegrambot.model.Chat;
 import com.pengrad.telegrambot.model.Message;
 import com.pengrad.telegrambot.model.Update;
@@ -44,17 +43,15 @@ class UpdateHandlerTest {
     @BeforeEach
     void setUp() {
         handler = new UpdateHandler(
-            List.of(
-                new StartCommand(userService, scrapperGrpcClient),
-                new HelpCommand(List.of(new StartCommand(userService, scrapperGrpcClient))),
-                new TrackCommand(userService, scrapperGrpcClient),
-                new UntrackCommand(userService, scrapperGrpcClient),
-                new ListCommand(scrapperGrpcClient),
-                new CancelCommand(userService)
-            ),
-            new UnknownCommand(),
-            userService
-        );
+                List.of(
+                        new StartCommand(userService, scrapperGrpcClient),
+                        new HelpCommand(List.of(new StartCommand(userService, scrapperGrpcClient))),
+                        new TrackCommand(userService, scrapperGrpcClient),
+                        new UntrackCommand(userService, scrapperGrpcClient),
+                        new ListCommand(scrapperGrpcClient),
+                        new CancelCommand(userService)),
+                new UnknownCommand(),
+                userService);
     }
 
     private Update buildUpdate(String text, long chatId) {
