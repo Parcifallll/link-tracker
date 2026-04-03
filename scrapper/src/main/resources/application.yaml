@@ -12,6 +12,24 @@ spring:
     server:
       port: 9091
 
+    datasource:
+      url: jdbc:postgresql://localhost:5432/${POSTGRES_DB}
+      username: ${POSTGRES_USER}
+      password: ${POSTGRES_PASSWORD}
+
+    liquibase:
+      change-log: classpath:db/changelog/db.changelog-master.yaml
+
+#    jpa:
+#      hibernate:
+#        ddl-auto: validate
+#      show-sql: true
+#      properties:
+#        hibernate:
+#          format_sql: true
+#          dialect: org.hibernate.dialect.PostgreSQLDialect
+#      open-in-view: false
+
 app:
   stackoverflow:
     key: ${STACKOVERFLOW_KEY}

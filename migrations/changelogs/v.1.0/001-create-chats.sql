@@ -1,0 +1,4 @@
+CREATE TABLE IF NOT EXISTS chats
+(
+    chat_id BIGINT PRIMARY KEY
+);

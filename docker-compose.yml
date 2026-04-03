@@ -1,38 +1,21 @@
 services:
-  bot:
-    container_name: bot
-    build:
-      context: ./bot
-      dockerfile: Dockerfile
-    ports:
-      - "8080:$8080"
+  liquibase-migrations:
+    container_name: migrations
+    image: liquibase/liquibase:4.29
     depends_on:
       postgres:
         condition: service_healthy
-      scrapper:
-        condition: service_healthy
-    env_file:
-      - .env
-    restart: unless-stopped
-
-  scrapper:
-    container_name: scrapper
-    build:
-      context: ./scrapper
-      dockerfile: Dockerfile
-    ports:
-      - "8081:8081"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    env_file:
-      - .env
-    restart: unless-stopped
-    healthcheck:
-      test: [ "CMD-SHELL", "curl -f http://localhost:8080/health || exit 1" ]
-      interval: 5s
-      timeout: 3s
-      retries: 3
+    working_dir: /changesets
+    command:
+      - --searchPath=.
+      - --changelog-file=db.changelog-master.xml
+      - --driver=org.postgresql.Driver
+      - --url=jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      - --username=${POSTGRES_USER}
+      - --password=${POSTGRES_PASSWORD}
+      - update
+    volumes:
+      - ./migrations:/changesets
 
   postgres:
     container_name: postgres
@@ -50,3 +33,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
+
+volumes:
+  postgres_data:
