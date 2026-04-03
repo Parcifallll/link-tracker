@@ -4,10 +4,29 @@ server:
 spring:
   application:
     name: scrapper
+  grpc:
+    client:
+      channels:
+        bot:
+          address: localhost:9090
+    server:
+      port: 9091
 
 app:
   stackoverflow:
-    key: ${STACKOVERFLOW_KEY} # Use env variable. DO NOT KEEP TOKEN HERE
-    access-token: ${STACKOVERFLOW_ACCESS_KEY} # Use env variable. DO NOT KEEP TOKEN HERE
+    key: ${STACKOVERFLOW_KEY}
+    access-token: ${STACKOVERFLOW_ACCESS_KEY}
+
   github:
-    token: ${GITHUB_TOKEN} # Use env variable. DO NOT KEEP TOKEN HERE
+    token: ${GITHUB_TOKEN}
+
+  bot:
+    url: http://localhost:8080
+
+  scheduler:
+    interval: 60s # polling
+
+logging:
+  structured:
+    format:
+      console: ecs
