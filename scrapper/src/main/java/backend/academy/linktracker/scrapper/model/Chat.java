@@ -1,3 +1,26 @@
 package backend.academy.linktracker.scrapper.model;
 
-public record Chat(long chatId) {}
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Entity
+@Table(name = "chats")
+@Getter
+@Setter
+@NoArgsConstructor
+public class Chat {
+    @Id
+    @Column(name = "chat_id")
+    private Long chatId;
+
+    public Chat(long chatId) {
+        this.chatId = chatId;
+    }
+
+    public long chatId() { return chatId; }
+}

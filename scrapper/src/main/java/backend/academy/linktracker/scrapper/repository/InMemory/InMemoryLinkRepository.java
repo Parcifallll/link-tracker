@@ -1,4 +1,4 @@
-package backend.academy.linktracker.scrapper.repository;
+package backend.academy.linktracker.scrapper.repository.InMemory;
 
 import backend.academy.linktracker.scrapper.model.Link;
 import java.net.URI;
@@ -8,9 +8,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
-import org.springframework.stereotype.Repository;
 
-@Repository
+import backend.academy.linktracker.scrapper.repository.LinkRepository;
+
 public class InMemoryLinkRepository implements LinkRepository {
 
     // chatId -> list of links
