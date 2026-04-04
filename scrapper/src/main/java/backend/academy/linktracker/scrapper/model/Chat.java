@@ -22,5 +22,7 @@ public class Chat {
         this.chatId = chatId;
     }
 
-    public long chatId() { return chatId; }
+    public long chatId() {
+        return chatId;
+    }
 }

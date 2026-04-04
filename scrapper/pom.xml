@@ -103,21 +103,21 @@
             <artifactId>postgresql</artifactId>
         </dependency>
 
-         <dependency>
-             <groupId>org.springframework.boot</groupId>
-             <artifactId>spring-boot-starter-data-jdbc</artifactId>
-         </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jdbc</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
 
-         <dependency>
-             <groupId>org.springframework.boot</groupId>
-             <!-- or: spring-boot-starter-flyway -->
-             <artifactId>spring-boot-starter-liquibase</artifactId>
-         </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <!-- or: spring-boot-starter-flyway -->
+            <artifactId>spring-boot-starter-liquibase</artifactId>
+        </dependency>
 
         <!-- GraphQL: -->
         <!-- <dependency> -->

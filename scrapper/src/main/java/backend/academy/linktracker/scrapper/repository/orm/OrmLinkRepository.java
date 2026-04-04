@@ -30,19 +30,17 @@ public class OrmLinkRepository implements LinkRepository {
     @Override
     @Transactional
     public Link save(long chatId, Link link) {
-        LinkEntity linkEntity = findLinkByUrl(link.getUrl().toString())
-            .orElseGet(() -> {
-                LinkEntity e = new LinkEntity(link.getUrl().toString());
-                em.persist(e);
-                return e;
-            });
+        LinkEntity linkEntity = findLinkByUrl(link.getUrl().toString()).orElseGet(() -> {
+            LinkEntity e = new LinkEntity(link.getUrl().toString());
+            em.persist(e);
+            return e;
+        });
 
         Chat chat = em.find(Chat.class, chatId);
         String[] tags = toArray(link.getTags());
         String[] filters = toArray(link.getFilters());
 
-        SubscriptionEntity sub = em.find(SubscriptionEntity.class,
-            new SubscriptionId(chatId, linkEntity.getId()));
+        SubscriptionEntity sub = em.find(SubscriptionEntity.class, new SubscriptionId(chatId, linkEntity.getId()));
         if (sub == null) {
             sub = new SubscriptionEntity(chat, linkEntity, tags, filters);
             em.persist(sub);
@@ -57,8 +55,7 @@ public class OrmLinkRepository implements LinkRepository {
     @Override
     @Transactional
     public void delete(long chatId, URI url) {
-        findSubscriptionByChatIdAndUrl(chatId, url.toString())
-            .ifPresent(em::remove);
+        findSubscriptionByChatIdAndUrl(chatId, url.toString()).ifPresent(em::remove);
     }
 
     @Override
@@ -67,18 +64,15 @@ public class OrmLinkRepository implements LinkRepository {
             SELECT s FROM SubscriptionEntity s
             JOIN FETCH s.link
             WHERE s.chat.chatId = :chatId
-            """, SubscriptionEntity.class)
-            .setParameter("chatId", chatId)
-            .getResultList()
-            .stream()
-            .map(s -> toLink(s.getLink(), s.getTags(), s.getFilters()))
-            .toList();
+            """, SubscriptionEntity.class).setParameter("chatId", chatId).getResultList().stream()
+                .map(s -> toLink(s.getLink(), s.getTags(), s.getFilters()))
+                .toList();
     }
 
     @Override
     public Optional<Link> findByUrl(long chatId, URI url) {
         return findSubscriptionByChatIdAndUrl(chatId, url.toString())
-            .map(s -> toLink(s.getLink(), s.getTags(), s.getFilters()));
+                .map(s -> toLink(s.getLink(), s.getTags(), s.getFilters()));
     }
 
     @Override
@@ -88,21 +82,17 @@ public class OrmLinkRepository implements LinkRepository {
             SELECT s FROM SubscriptionEntity s
             JOIN FETCH s.link
             JOIN FETCH s.chat
-            """, SubscriptionEntity.class)
-            .getResultList()
-            .forEach(s -> {
-                long cid = s.getChat().getChatId();
-                result.computeIfAbsent(cid, id -> new ArrayList<>())
-                    .add(toLink(s.getLink(), s.getTags(), s.getFilters()));
-            });
+            """, SubscriptionEntity.class).getResultList().forEach(s -> {
+            long cid = s.getChat().getChatId();
+            result.computeIfAbsent(cid, id -> new ArrayList<>()).add(toLink(s.getLink(), s.getTags(), s.getFilters()));
+        });
         return result;
     }
 
     private Optional<LinkEntity> findLinkByUrl(String url) {
-        List<LinkEntity> result = em.createQuery(
-                "SELECT l FROM LinkEntity l WHERE l.url = :url", LinkEntity.class)
-            .setParameter("url", url)
-            .getResultList();
+        List<LinkEntity> result = em.createQuery("SELECT l FROM LinkEntity l WHERE l.url = :url", LinkEntity.class)
+                .setParameter("url", url)
+                .getResultList();
         return result.stream().findFirst();
     }
 
@@ -112,19 +102,18 @@ public class OrmLinkRepository implements LinkRepository {
             JOIN FETCH s.link
             WHERE s.chat.chatId = :chatId AND s.link.url = :url
             """, SubscriptionEntity.class)
-            .setParameter("chatId", chatId)
-            .setParameter("url", url)
-            .getResultList();
+                .setParameter("chatId", chatId)
+                .setParameter("url", url)
+                .getResultList();
         return result.stream().findFirst();
     }
 
     private Link toLink(LinkEntity entity, String[] tags, String[] filters) {
         Link link = new Link(
-            entity.getId(),
-            URI.create(entity.getUrl()),
-            tags == null ? List.of() : Arrays.asList(tags),
-            filters == null ? List.of() : Arrays.asList(filters)
-        );
+                entity.getId(),
+                URI.create(entity.getUrl()),
+                tags == null ? List.of() : Arrays.asList(tags),
+                filters == null ? List.of() : Arrays.asList(filters));
         link.setLastCheckedAt(entity.getLastCheckedAt());
         return link;
     }

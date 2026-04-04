@@ -33,16 +33,10 @@ public class SqlLinkRepository implements LinkRepository {
             INSERT INTO links (url, last_checked_at)
             VALUES (?, ?)
             ON CONFLICT (url) DO UPDATE SET last_checked_at = EXCLUDED.last_checked_at
-            """,
-            link.getUrl().toString(),
-            Timestamp.from(link.getLastCheckedAt())
-        );
+            """, link.getUrl().toString(), Timestamp.from(link.getLastCheckedAt()));
 
         Long linkId = jdbcTemplate.queryForObject(
-            "SELECT id FROM links WHERE url = ?",
-            Long.class,
-            link.getUrl().toString()
-        );
+                "SELECT id FROM links WHERE url = ?", Long.class, link.getUrl().toString());
 
         // insert subscription with tags and filters
         Array tags = createArray(link.getTags());
@@ -51,9 +45,7 @@ public class SqlLinkRepository implements LinkRepository {
             INSERT INTO subscriptions (chat_id, link_id, tags, filters)
             VALUES (?, ?, ?, ?)
             ON CONFLICT (chat_id, link_id) DO UPDATE SET tags = EXCLUDED.tags, filters = EXCLUDED.filters
-            """,
-            chatId, linkId, tags, filters
-        );
+            """, chatId, linkId, tags, filters);
 
         return new Link(linkId, link.getUrl(), link.getTags(), link.getFilters());
     }
@@ -64,9 +56,7 @@ public class SqlLinkRepository implements LinkRepository {
         jdbcTemplate.update("""
             DELETE FROM subscriptions
             WHERE chat_id = ? AND link_id = (SELECT id FROM links WHERE url = ?)
-            """,
-            chatId, url.toString()
-        );
+            """, chatId, url.toString());
     }
 
     @Override
@@ -76,10 +66,7 @@ public class SqlLinkRepository implements LinkRepository {
             FROM links l
             JOIN subscriptions s ON l.id = s.link_id
             WHERE s.chat_id = ?
-            """,
-            (rs, rowNum) -> mapLink(rs),
-            chatId
-        );
+            """, (rs, rowNum) -> mapLink(rs), chatId);
     }
 
     @Override
@@ -89,10 +76,7 @@ public class SqlLinkRepository implements LinkRepository {
             FROM links l
             JOIN subscriptions s ON l.id = s.link_id
             WHERE s.chat_id = ? AND l.url = ?
-            """,
-            (rs, rowNum) -> mapLink(rs),
-            chatId, url.toString()
-        );
+            """, (rs, rowNum) -> mapLink(rs), chatId, url.toString());
         return result.stream().findFirst();
     }
 
@@ -103,13 +87,11 @@ public class SqlLinkRepository implements LinkRepository {
             SELECT s.chat_id, l.id, l.url, l.last_checked_at, s.tags, s.filters
             FROM links l
             JOIN subscriptions s ON l.id = s.link_id
-            """,
-            rs -> {
-                long chatId = rs.getLong("chat_id");
-                Link link = mapLink(rs);
-                result.computeIfAbsent(chatId, id -> new ArrayList<>()).add(link);
-            }
-        );
+            """, rs -> {
+            long chatId = rs.getLong("chat_id");
+            Link link = mapLink(rs);
+            result.computeIfAbsent(chatId, id -> new ArrayList<>()).add(link);
+        });
         return result;
     }
 
@@ -130,17 +112,12 @@ public class SqlLinkRepository implements LinkRepository {
     }
 
     private Array createArray(List<String> items) {
-        return jdbcTemplate.execute(
-            (java.sql.Connection con) -> con.createArrayOf("text",
-                items == null ? new String[0] : items.toArray(String[]::new))
-        );
+        return jdbcTemplate.execute((java.sql.Connection con) ->
+                con.createArrayOf("text", items == null ? new String[0] : items.toArray(String[]::new)));
     }
 
     @Override
     public void updateLastCheckedAt(long linkId, Instant lastCheckedAt) {
-        jdbcTemplate.update(
-            "UPDATE links SET last_checked_at = ? WHERE id = ?",
-            Timestamp.from(lastCheckedAt), linkId
-        );
+        jdbcTemplate.update("UPDATE links SET last_checked_at = ? WHERE id = ?", Timestamp.from(lastCheckedAt), linkId);
     }
 }

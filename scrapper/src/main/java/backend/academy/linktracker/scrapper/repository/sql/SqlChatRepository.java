@@ -16,10 +16,7 @@ public class SqlChatRepository implements ChatRepository {
 
     @Override
     public void save(Chat chat) {
-        jdbcTemplate.update(
-            "INSERT INTO chats (chat_id) VALUES (?) ON CONFLICT DO NOTHING",
-            chat.chatId()
-        );
+        jdbcTemplate.update("INSERT INTO chats (chat_id) VALUES (?) ON CONFLICT DO NOTHING", chat.chatId());
     }
 
     @Override
@@ -29,11 +26,8 @@ public class SqlChatRepository implements ChatRepository {
 
     @Override
     public boolean exists(long chatId) {
-        Integer count = jdbcTemplate.queryForObject(
-            "SELECT COUNT(*) FROM chats WHERE chat_id = ?",
-            Integer.class,
-            chatId
-        );
+        Integer count =
+                jdbcTemplate.queryForObject("SELECT COUNT(*) FROM chats WHERE chat_id = ?", Integer.class, chatId);
         return count != null && count > 0;
     }
 }
