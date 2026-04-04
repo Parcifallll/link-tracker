@@ -2,6 +2,7 @@ package backend.academy.linktracker.scrapper.repository;
 
 import backend.academy.linktracker.scrapper.model.Link;
 import java.net.URI;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -16,4 +17,6 @@ public interface LinkRepository {
     Optional<Link> findByUrl(long chatId, URI url);
 
     Map<Long, List<Link>> findAllWithChatIds();
+
+    void updateLastCheckedAt(long linkId, Instant lastCheckedAt);
 }

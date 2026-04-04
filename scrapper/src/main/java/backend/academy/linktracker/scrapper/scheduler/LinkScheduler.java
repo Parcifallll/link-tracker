@@ -34,7 +34,7 @@ public class LinkScheduler {
             MDC.put("url", link.getUrl().toString());
             try {
                 if (linkUpdateService.hasUpdate(link)) {
-                    log.atInfo().log("Update detected, notifying bot via gRPC");
+                    linkRepository.updateLastCheckedAt(link.getId(), link.getLastCheckedAt());
                     botUpdateGrpcClient.sendUpdate(link, List.of(chatId));
                 }
             } finally {

@@ -8,6 +8,7 @@ import backend.academy.linktracker.scrapper.repository.orm.entity.SubscriptionEn
 import backend.academy.linktracker.scrapper.repository.orm.entity.SubscriptionId;
 import jakarta.persistence.EntityManager;
 import java.net.URI;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -130,5 +131,12 @@ public class OrmLinkRepository implements LinkRepository {
 
     private String[] toArray(List<String> list) {
         return list == null ? new String[0] : list.toArray(String[]::new);
+    }
+
+    @Override
+    @Transactional
+    public void updateLastCheckedAt(long linkId, Instant lastCheckedAt) {
+        LinkEntity entity = em.find(LinkEntity.class, linkId);
+        if (entity != null) entity.setLastCheckedAt(lastCheckedAt);
     }
 }

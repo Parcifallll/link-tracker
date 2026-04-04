@@ -135,4 +135,12 @@ public class SqlLinkRepository implements LinkRepository {
                 items == null ? new String[0] : items.toArray(String[]::new))
         );
     }
+
+    @Override
+    public void updateLastCheckedAt(long linkId, Instant lastCheckedAt) {
+        jdbcTemplate.update(
+            "UPDATE links SET last_checked_at = ? WHERE id = ?",
+            Timestamp.from(lastCheckedAt), linkId
+        );
+    }
 }
