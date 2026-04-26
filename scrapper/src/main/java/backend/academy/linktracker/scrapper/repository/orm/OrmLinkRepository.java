@@ -12,6 +12,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -127,5 +128,48 @@ public class OrmLinkRepository implements LinkRepository {
     public void updateLastCheckedAt(long linkId, Instant lastCheckedAt) {
         LinkEntity entity = em.find(LinkEntity.class, linkId);
         if (entity != null) entity.setLastCheckedAt(lastCheckedAt);
+    }
+
+    @Override
+    public Map<Link, List<Long>> findLinksToCheck(int limit) {
+        List<LinkEntity> linkEntities = em.createQuery(
+                        "SELECT l FROM LinkEntity l ORDER BY l.lastCheckedAt DESC", LinkEntity.class)
+                .setMaxResults(limit)
+                .getResultList();
+
+        if (linkEntities.isEmpty()) {
+            return Map.of();
+        }
+
+        List<Long> linkIds = linkEntities.stream().map(LinkEntity::getId).toList();
+
+        List<SubscriptionEntity> subscriptions = em.createQuery("""
+            SELECT s FROM SubscriptionEntity s
+            JOIN FETCH s.chat
+            WHERE s.link.id IN :linkIds
+            """, SubscriptionEntity.class)
+                .setParameter("linkIds", linkIds)
+                .getResultList();
+
+        Map<Long, List<Long>> chatIdsByLinkId = new HashMap<>();
+
+        for (SubscriptionEntity sub : subscriptions) {
+            long linkId = sub.getLink().getId();
+            chatIdsByLinkId
+                    .computeIfAbsent(linkId, k -> new ArrayList<>())
+                    .add(sub.getChat().getChatId());
+        }
+
+        Map<Link, List<Long>> result = new LinkedHashMap<>();
+        for (LinkEntity linkEntity : linkEntities) {
+            long linkId = linkEntity.getId();
+
+            Link link = toLink(linkEntity, new String[0], new String[0]);
+            List<Long> chatIds = chatIdsByLinkId.getOrDefault(linkId, List.of());
+
+            result.put(link, chatIds);
+        }
+
+        return result;
     }
 }

@@ -1,11 +1,11 @@
-package backend.academy.linktracker.scrapper.repository.orm; // Test that ORM access type uses ORM implementation
+package backend.academy.linktracker.scrapper.repository; // Test that ORM access type uses ORM implementation
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 import backend.academy.linktracker.scrapper.AbstractIntegrationTest;
 import backend.academy.linktracker.scrapper.TestcontainersConfiguration;
-import backend.academy.linktracker.scrapper.repository.ChatRepository;
-import backend.academy.linktracker.scrapper.repository.LinkRepository;
+import backend.academy.linktracker.scrapper.repository.orm.OrmChatRepository;
+import backend.academy.linktracker.scrapper.repository.orm.OrmLinkRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;

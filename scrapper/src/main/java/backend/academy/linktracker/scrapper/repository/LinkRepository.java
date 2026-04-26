@@ -19,4 +19,6 @@ public interface LinkRepository {
     Map<Long, List<Link>> findAllWithChatIds();
 
     void updateLastCheckedAt(long linkId, Instant lastCheckedAt);
+
+    Map<Link, List<Long>> findLinksToCheck(int limit);
 }

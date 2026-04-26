@@ -1,4 +1,4 @@
-package backend.academy.linktracker.scrapper.repository.sql;
+package backend.academy.linktracker.scrapper.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -9,6 +9,9 @@ import backend.academy.linktracker.scrapper.model.Link;
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;
+
+import backend.academy.linktracker.scrapper.repository.orm.OrmChatRepository;
+import backend.academy.linktracker.scrapper.repository.orm.OrmLinkRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,16 +21,16 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-@SpringBootTest(properties = "app.database.access-type=SQL")
+@SpringBootTest(properties = "app.database.access-type=ORM")
 @Testcontainers
 @ActiveProfiles("test")
 @Import(TestcontainersConfiguration.class)
-class SqlRepositoryTest extends AbstractIntegrationTest {
+class OrmRepositoryTest extends AbstractIntegrationTest {
     @Autowired
-    SqlChatRepository chatRepository;
+    OrmChatRepository chatRepository;
 
     @Autowired
-    SqlLinkRepository linkRepository;
+    OrmLinkRepository linkRepository;
 
     @Autowired
     JdbcTemplate jdbcTemplate;
