@@ -1,9 +1,11 @@
+// scrapper/src/main/java/backend/academy/linktracker/scrapper/scheduler/LinkScheduler.java
 package backend.academy.linktracker.scrapper.scheduler;
 
-import backend.academy.linktracker.scrapper.grpc.BotUpdateGrpcClient;
 import backend.academy.linktracker.scrapper.model.Link;
+import backend.academy.linktracker.scrapper.properties.SchedulerProperties;
 import backend.academy.linktracker.scrapper.repository.LinkRepository;
 import backend.academy.linktracker.scrapper.service.LinkUpdateService;
+import backend.academy.linktracker.scrapper.service.MessageSender;
 import backend.academy.linktracker.scrapper.service.UpdateInfo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,7 +13,6 @@ import org.slf4j.MDC;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -24,40 +25,50 @@ public class LinkScheduler {
 
     private final LinkRepository linkRepository;
     private final LinkUpdateService linkUpdateService;
-    private final BotUpdateGrpcClient botUpdateGrpcClient;
+    private final MessageSender messageSender;
+    private final SchedulerProperties schedulerProperties;
 
     @Scheduled(fixedDelayString = "${app.scheduler.interval}")
     public void checkUpdates() {
-        log.info("Starting link updates check");
+        log.info("Starting link updates check (batch size: {})", schedulerProperties.getBatchSize());
 
-        Map<Long, List<Link>> linksByChatId = linkRepository.findAllWithChatIds();
+        Map<Link, List<Long>> linksWithChatIds = linkRepository.findLinksToCheck(schedulerProperties.getBatchSize());
 
-        linksByChatId.forEach((chatId, links) -> links.forEach(link -> {
-            MDC.put("chatId", String.valueOf(chatId));
+        if (linksWithChatIds.isEmpty()) {
+            log.info("No links to check");
+            return;
+        }
+
+        log.info("Checking {} links", linksWithChatIds.size());
+
+        linksWithChatIds.forEach((link, chatIds) -> {
             MDC.put("url", link.getUrl().toString());
+            MDC.put("linkId", String.valueOf(link.getId()));
 
             try {
                 Optional<UpdateInfo> updateOpt = linkUpdateService.checkUpdate(link);
 
                 if (updateOpt.isPresent()) {
-                    UpdateInfo update = updateOpt.get();
+                    UpdateInfo updateInfo = updateOpt.get();
 
                     linkRepository.updateLastCheckedAt(link.getId(), link.getLastCheckedAt());
 
-                    botUpdateGrpcClient.sendUpdate(link, List.of(chatId));
+                    messageSender.sendUpdate(link, updateInfo, chatIds);
 
-                    log.info("Found updates for link: {} | title: {}",
-                        link.getUrl(), update.linkTitle());
+                    log.info("Updates found and sent for link: {} | title: {}",
+                        link.getUrl(), updateInfo.linkTitle());
                 } else {
                     log.debug("No updates for link: {}", link.getUrl());
                 }
 
             } catch (Exception e) {
-                log.error("Error while checking updates for link: {}", link.getUrl(), e);
+                log.error("Error checking link: {}", link.getUrl(), e);
+
+                messageSender.sendError(link, e.getMessage(), chatIds);
             } finally {
                 MDC.clear();
             }
-        }));
+        });
 
         log.info("Link updates check completed");
     }
