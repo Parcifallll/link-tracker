@@ -1,11 +1,10 @@
-package backend.academy.linktracker.scrapper.repository.orm;
+package backend.academy.linktracker.scrapper.repository;
 
 import backend.academy.linktracker.scrapper.model.Chat;
 import backend.academy.linktracker.scrapper.model.Link;
-import backend.academy.linktracker.scrapper.repository.LinkRepository;
-import backend.academy.linktracker.scrapper.repository.orm.entity.LinkEntity;
-import backend.academy.linktracker.scrapper.repository.orm.entity.SubscriptionEntity;
-import backend.academy.linktracker.scrapper.repository.orm.entity.SubscriptionId;
+import backend.academy.linktracker.scrapper.repository.entity.LinkEntity;
+import backend.academy.linktracker.scrapper.repository.entity.SubscriptionEntity;
+import backend.academy.linktracker.scrapper.repository.entity.SubscriptionId;
 import jakarta.persistence.EntityManager;
 import java.net.URI;
 import java.time.Instant;
@@ -17,13 +16,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 @RequiredArgsConstructor
-@ConditionalOnProperty(name = "app.database.access-type", havingValue = "ORM")
 public class OrmLinkRepository implements LinkRepository {
 
     private final EntityManager em;

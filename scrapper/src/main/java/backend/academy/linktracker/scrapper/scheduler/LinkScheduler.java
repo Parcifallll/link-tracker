@@ -7,15 +7,15 @@ import backend.academy.linktracker.scrapper.repository.LinkRepository;
 import backend.academy.linktracker.scrapper.service.LinkUpdateService;
 import backend.academy.linktracker.scrapper.service.MessageSender;
 import backend.academy.linktracker.scrapper.service.UpdateInfo;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 
 @Slf4j
 @Component
@@ -49,21 +49,19 @@ public class LinkScheduler {
                 Optional<UpdateInfo> updateOpt = linkUpdateService.checkUpdate(link);
 
                 if (updateOpt.isPresent()) {
-                    UpdateInfo updateInfo = updateOpt.get();
+                    UpdateInfo updateInfo = updateOpt.orElseThrow();
 
                     linkRepository.updateLastCheckedAt(link.getId(), link.getLastCheckedAt());
 
                     messageSender.sendUpdate(link, updateInfo, chatIds);
 
-                    log.info("Updates found and sent for link: {} | title: {}",
-                        link.getUrl(), updateInfo.linkTitle());
+                    log.info("Updates found and sent for link: {} | title: {}", link.getUrl(), updateInfo.linkTitle());
                 } else {
                     log.debug("No updates for link: {}", link.getUrl());
                 }
 
             } catch (Exception e) {
                 log.error("Error checking link: {}", link.getUrl(), e);
-
                 messageSender.sendError(link, e.getMessage(), chatIds);
             } finally {
                 MDC.clear();

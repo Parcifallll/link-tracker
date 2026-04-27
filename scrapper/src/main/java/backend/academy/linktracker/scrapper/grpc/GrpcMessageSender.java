@@ -1,15 +1,15 @@
 package backend.academy.linktracker.scrapper.grpc;
 
-import backend.academy.linktracker.grpc.SendUpdateRequest;
 import backend.academy.linktracker.grpc.BotUpdateServiceGrpc;
+import backend.academy.linktracker.grpc.SendUpdateRequest;
 import backend.academy.linktracker.scrapper.model.Link;
 import backend.academy.linktracker.scrapper.service.MessageSender;
 import backend.academy.linktracker.scrapper.service.UpdateInfo;
 import io.grpc.ManagedChannel;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.grpc.client.GrpcChannelFactory;
 import org.springframework.stereotype.Component;
-import java.util.List;
 
 @Slf4j
 @Component
@@ -43,8 +43,7 @@ public class GrpcMessageSender implements MessageSender {
 
     @Override
     public void sendError(Link link, String errorMessage, List<Long> chatIds) {
-        String message = String.format("Failed to check link: %s\nError: %s",
-            link.getUrl(), errorMessage);
+        String message = String.format("Failed to check link: %s%nError: %s", link.getUrl(), errorMessage);
 
         SendUpdateRequest request = SendUpdateRequest.newBuilder()
                 .setId(link.getId())
@@ -66,12 +65,13 @@ public class GrpcMessageSender implements MessageSender {
         sb.append("* ").append(updateInfo.linkTitle()).append("\n\n");
 
         updateInfo.itemsByType().forEach((type, items) -> {
-            String typeLabel = switch (type) {
-                case GITHUB_ISSUE -> "Новые Issues";
-                case GITHUB_PR -> "Новые Pull Requests";
-                case STACKOVERFLOW_ANSWER -> "Новые ответы";
-                case STACKOVERFLOW_COMMENT -> "Новые комментарии";
-            };
+            String typeLabel =
+                    switch (type) {
+                        case GITHUB_ISSUE -> "Новые Issues";
+                        case GITHUB_PR -> "Новые Pull Requests";
+                        case STACKOVERFLOW_ANSWER -> "Новые ответы";
+                        case STACKOVERFLOW_COMMENT -> "Новые комментарии";
+                    };
 
             sb.append(typeLabel).append(":\n");
             items.forEach(item -> {

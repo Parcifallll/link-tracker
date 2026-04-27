@@ -16,15 +16,9 @@ public interface StackOverflowClient {
 
     @GetExchange("/questions/{id}/answers?fromdate={fromdate}&order=desc&sort=creation&site={site}&key={key}")
     StackOverflowAnswersResponse getAnswers(
-        @PathVariable long id,
-        @PathVariable long fromdate,
-        @PathVariable String site,
-        @PathVariable String key);
+            @PathVariable long id, @PathVariable long fromdate, @PathVariable String site, @PathVariable String key);
 
     @GetExchange("/questions/{id}/comments?fromdate={fromdate}&order=desc&sort=creation&site={site}&key={key}")
     StackOverflowCommentsResponse getComments(
-        @PathVariable long id,
-        @PathVariable long fromdate,
-        @PathVariable String site,
-        @PathVariable String key);
+            @PathVariable long id, @PathVariable long fromdate, @PathVariable String site, @PathVariable String key);
 }

@@ -1,4 +1,4 @@
-package backend.academy.linktracker.scrapper.repository.orm.entity;
+package backend.academy.linktracker.scrapper.repository.entity;
 
 import jakarta.persistence.Embeddable;
 import java.io.Serializable;
