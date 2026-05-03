@@ -2,14 +2,16 @@ package backend.academy.linktracker.scrapper.grpc;
 
 import backend.academy.linktracker.grpc.BotUpdateServiceGrpc;
 import backend.academy.linktracker.grpc.SendUpdateRequest;
+import backend.academy.linktracker.grpc.UpdateItem;
 import backend.academy.linktracker.scrapper.model.Link;
 import backend.academy.linktracker.scrapper.service.MessageSender;
 import backend.academy.linktracker.scrapper.service.UpdateInfo;
 import io.grpc.ManagedChannel;
-import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.grpc.client.GrpcChannelFactory;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 @Slf4j
 @Component
@@ -24,18 +26,17 @@ public class GrpcMessageSender implements MessageSender {
 
     @Override
     public void sendUpdate(Link link, UpdateInfo updateInfo, List<Long> chatIds) {
-        String formattedMessage = formatUpdateMessage(link, updateInfo);
-
         SendUpdateRequest request = SendUpdateRequest.newBuilder()
-                .setId(link.getId())
-                .setUrl(link.getUrl().toString())
-                .setDescription(formattedMessage)
-                .addAllTgChatIds(chatIds)
-                .build();
+            .setId(link.getId())
+            .setUrl(link.getUrl().toString())
+            .setTitle(getLinkTitle(updateInfo, link))
+            .addAllTgChatIds(chatIds)
+            .addAllUpdates(buildProtoUpdates(updateInfo))
+            .build();
 
         try {
             stub.sendUpdate(request);
-            log.info("Update sent for link: {}", link.getUrl());
+            log.info("Successfully sent update via gRPC for link: {}", link.getUrl());
         } catch (Exception e) {
             log.error("Failed to send update via gRPC for link: {}", link.getUrl(), e);
         }
@@ -43,14 +44,13 @@ public class GrpcMessageSender implements MessageSender {
 
     @Override
     public void sendError(Link link, String errorMessage, List<Long> chatIds) {
-        String message = String.format("Failed to check link: %s%nError: %s", link.getUrl(), errorMessage);
-
         SendUpdateRequest request = SendUpdateRequest.newBuilder()
-                .setId(link.getId())
-                .setUrl(link.getUrl().toString())
-                .setDescription(message)
-                .addAllTgChatIds(chatIds)
-                .build();
+            .setId(link.getId())
+            .setUrl(link.getUrl().toString())
+            .setTitle("Error checking link")
+            .setError(errorMessage)
+            .addAllTgChatIds(chatIds)
+            .build();
 
         try {
             stub.sendUpdate(request);
@@ -59,32 +59,27 @@ public class GrpcMessageSender implements MessageSender {
         }
     }
 
-    private String formatUpdateMessage(Link link, UpdateInfo updateInfo) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("Обновление по ссылке: ").append(link.getUrl()).append("\n\n");
-        sb.append("* ").append(updateInfo.linkTitle()).append("\n\n");
+    private String getLinkTitle(UpdateInfo updateInfo, Link link) {
+        if (updateInfo.linkTitle() != null && !updateInfo.linkTitle().isBlank()) {
+            return updateInfo.linkTitle();
+        }
+        return link.getUrl().toString();
+    }
 
-        updateInfo.itemsByType().forEach((type, items) -> {
-            String typeLabel =
-                    switch (type) {
-                        case GITHUB_ISSUE -> "Новые Issues";
-                        case GITHUB_PR -> "Новые Pull Requests";
-                        case STACKOVERFLOW_ANSWER -> "Новые ответы";
-                        case STACKOVERFLOW_COMMENT -> "Новые комментарии";
-                    };
+    private List<UpdateItem> buildProtoUpdates(UpdateInfo updateInfo) {
+        return updateInfo.itemsByType().entrySet().stream()
+            .flatMap(entry -> entry.getValue().stream()
+                .map(item -> UpdateItem.newBuilder()
+                    .setType(entry.getKey().name())
+                    .setTitle(defaultIfNull(item.title()))
+                    .setAuthor(defaultIfNull(item.author()))
+                    .setCreatedAt(item.createdAt().toString())
+                    .setPreview(defaultIfNull(item.preview()))
+                    .build()))
+            .toList();
+    }
 
-            sb.append(typeLabel).append(":\n");
-            items.forEach(item -> {
-                sb.append("* ").append(item.title()).append("\n");
-                sb.append("    - ").append(item.author()).append("\n");
-                sb.append("    - ").append(item.createdAt()).append("\n");
-                if (!item.preview().isEmpty()) {
-                    sb.append("    - ").append(item.preview()).append("\n");
-                }
-                sb.append("\n");
-            });
-        });
-
-        return sb.toString();
+    private String defaultIfNull(String value) {
+        return value != null ? value : "";
     }
 }
