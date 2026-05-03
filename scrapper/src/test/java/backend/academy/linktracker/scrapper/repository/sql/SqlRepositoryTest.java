@@ -1,4 +1,4 @@
-package backend.academy.linktracker.scrapper.repository;
+package backend.academy.linktracker.scrapper.repository.sql;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -8,11 +8,7 @@ import backend.academy.linktracker.scrapper.model.Chat;
 import backend.academy.linktracker.scrapper.model.Link;
 import java.net.URI;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-
-import backend.academy.linktracker.scrapper.repository.orm.OrmChatRepository;
-import backend.academy.linktracker.scrapper.repository.orm.OrmLinkRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,16 +18,16 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-@SpringBootTest
+@SpringBootTest(properties = "app.database.access-type=SQL")
 @Testcontainers
 @ActiveProfiles("test")
 @Import(TestcontainersConfiguration.class)
-class OrmRepositoryTest extends AbstractIntegrationTest {
+class SqlRepositoryTest extends AbstractIntegrationTest {
     @Autowired
-    OrmChatRepository chatRepository;
+    SqlChatRepository chatRepository;
 
     @Autowired
-    OrmLinkRepository linkRepository;
+    SqlLinkRepository linkRepository;
 
     @Autowired
     JdbcTemplate jdbcTemplate;
@@ -95,43 +91,5 @@ class OrmRepositoryTest extends AbstractIntegrationTest {
         assertThat(chatsCount).isEqualTo(1);
         assertThat(linksCount).isEqualTo(1);
         assertThat(subsCount).isEqualTo(1);
-    }
-
-    @Test
-    void findLinksToCheck_returnsLinksWithChatIds() {
-
-        Link link1 = linkRepository.save(CHAT_ID, new Link(0, URL, List.of(), List.of()));
-        URI url2 = URI.create("https://github.com/user/repo2");
-        Link link2 = linkRepository.save(CHAT_ID, new Link(0, url2, List.of(), List.of()));
-
-        long chatId2 = 2L;
-        chatRepository.save(new Chat(chatId2));
-        linkRepository.save(chatId2, new Link(0, url2, List.of(), List.of()));
-
-        Map<Link, List<Long>> result = linkRepository.findLinksToCheck(10);
-
-        assertThat(result).hasSize(2);
-        assertThat(result.values()).anySatisfy(chatIds -> assertThat(chatIds).containsExactlyInAnyOrder(CHAT_ID));
-        assertThat(result.values())
-                .anySatisfy(chatIds -> assertThat(chatIds).containsExactlyInAnyOrder(CHAT_ID, chatId2));
-    }
-
-    @Test
-    void findLinksToCheck_respectsLimit() {
-        for (int i = 0; i < 5; i++) {
-            URI url = URI.create("https://github.com/user/repo" + i);
-            linkRepository.save(CHAT_ID, new Link(0, url, List.of(), List.of()));
-        }
-
-        Map<Link, List<Long>> result = linkRepository.findLinksToCheck(3);
-
-        assertThat(result).hasSize(3);
-    }
-
-    @Test
-    void findLinksToCheck_emptyWhenNoLinks() {
-        Map<Link, List<Long>> result = linkRepository.findLinksToCheck(10);
-
-        assertThat(result).isEmpty();
     }
 }

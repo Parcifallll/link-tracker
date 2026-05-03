@@ -1,13 +1,16 @@
-package backend.academy.linktracker.scrapper.repository;
+package backend.academy.linktracker.scrapper.repository.orm;
 
 import backend.academy.linktracker.scrapper.model.Chat;
+import backend.academy.linktracker.scrapper.repository.ChatRepository;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 @RequiredArgsConstructor
+@ConditionalOnProperty(name = "app.database.access-type", havingValue = "ORM")
 public class OrmChatRepository implements ChatRepository {
 
     private final EntityManager em;

@@ -26,6 +26,9 @@ spring:
     open-in-view: false
 
 app:
+  database:
+    access-type: ORM
+
   stackoverflow:
     key: ${STACKOVERFLOW_KEY}
     access-token: ${STACKOVERFLOW_ACCESS_KEY}
