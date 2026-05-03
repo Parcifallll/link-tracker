@@ -54,7 +54,7 @@ public class LinkScheduler {
                     return;
                 }
 
-                UpdateInfo updateInfo = updateOpt.get();
+                UpdateInfo updateInfo = updateOpt.orElseThrow(() -> new RuntimeException("UpdateInfo is null"));
 
                 linkRepository.updateLastCheckedAt(link.getId(), link.getLastCheckedAt());
 

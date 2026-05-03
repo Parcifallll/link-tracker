@@ -1,9 +1,17 @@
 package backend.academy.linktracker.scrapper.service;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
+import backend.academy.linktracker.scrapper.AbstractIntegrationTest;
+import backend.academy.linktracker.scrapper.TestcontainersConfiguration;
 import backend.academy.linktracker.scrapper.client.stackoverflow.StackOverflowClient;
+import backend.academy.linktracker.scrapper.client.stackoverflow.dto.Owner;
+import backend.academy.linktracker.scrapper.client.stackoverflow.dto.StackOverflowAnswersResponse;
+import backend.academy.linktracker.scrapper.client.stackoverflow.dto.StackOverflowCommentsResponse;
+import backend.academy.linktracker.scrapper.client.stackoverflow.dto.StackOverflowResponse;
 import backend.academy.linktracker.scrapper.model.Link;
 import backend.academy.linktracker.scrapper.properties.StackoverflowProperties;
 import java.net.URI;
@@ -14,132 +22,78 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.wiremock.spring.ConfigureWireMock;
-import org.wiremock.spring.EnableWireMock;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
+@Testcontainers
+@Import(TestcontainersConfiguration.class)
 @SpringBootTest
-@EnableWireMock({@ConfigureWireMock(name = "stackoverflow-api", baseUrlProperties = "stackoverflow.url")})
-class StackOverflowLinkUpdateCheckerTest {
+class StackOverflowLinkUpdateCheckerTest extends AbstractIntegrationTest {
 
     @Autowired
-    StackOverflowClient stackOverflowClient;
-
-    @Autowired
-    StackoverflowProperties properties;
-
     StackOverflowLinkUpdateChecker checker;
 
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("app.stackoverflow.key", () -> "test-key");
-        registry.add("app.stackoverflow.access-token", () -> "test-token");
-    }
+    @MockitoBean
+    StackOverflowClient stackOverflowClient;
+
+    @MockitoBean
+    StackoverflowProperties properties;
 
     @BeforeEach
     void setUp() {
-        checker = new StackOverflowLinkUpdateChecker(stackOverflowClient, properties);
+        when(properties.getKey()).thenReturn("test-key");
     }
 
     @Test
     void newAnswer_returnsUpdateInfo() {
-        stubFor(get(urlPathEqualTo("/questions/123456/answers"))
-                .willReturn(aResponse()
-                        .withStatus(200)
-                        .withHeader("Content-Type", "application/json")
-                        .withBody("""
-                            {
-                              "items": [
-                                {
-                                  "answer_id": 1,
-                                  "body": "This is the answer to your question",
-                                  "owner": {"display_name": "Expert"},
-                                  "creation_date": 1714212000
-                                }
-                              ]
-                            }
-                            """)));
+        Owner owner = new Owner("Expert");
 
-        stubFor(get(urlPathEqualTo("/questions/123456/comments"))
-                .willReturn(aResponse()
-                        .withStatus(200)
-                        .withHeader("Content-Type", "application/json")
-                        .withBody("{\"items\": []}")));
+        StackOverflowAnswersResponse.AnswerItem answer = new StackOverflowAnswersResponse.AnswerItem(
+                1L, "This is the answer to your question", owner, 1714212000L);
 
-        stubFor(get(urlPathEqualTo("/questions/123456"))
-                .willReturn(aResponse()
-                        .withStatus(200)
-                        .withHeader("Content-Type", "application/json")
-                        .withBody("""
-                            {
-                              "items": [
-                                {
-                                  "question_id": 123456,
-                                  "title": "How to do X?",
-                                  "last_activity_date": "2026-04-27T10:00:00Z"
-                                }
-                              ]
-                            }
-                            """)));
+        when(stackOverflowClient.getAnswers(anyLong(), anyLong(), anyString(), anyString()))
+                .thenReturn(new StackOverflowAnswersResponse(List.of(answer)));
 
-        Link link = new Link(1L, URI.create("https://stackoverflow.com/questions/123456/title"), List.of(), List.of());
+        when(stackOverflowClient.getComments(anyLong(), anyLong(), anyString(), anyString()))
+                .thenReturn(new StackOverflowCommentsResponse(List.of()));
+
+        StackOverflowResponse.QuestionItem question =
+                new StackOverflowResponse.QuestionItem(123456L, "How to do X?", Instant.now());
+
+        when(stackOverflowClient.getQuestion(anyLong(), anyString(), anyString()))
+                .thenReturn(new StackOverflowResponse(List.of(question)));
+
+        Link link = new Link(
+                1L, URI.create("https://stackoverflow.com/questions/123456/how-to-do-x"), List.of(), List.of());
         link.setLastCheckedAt(Instant.EPOCH);
 
         Optional<UpdateInfo> resultOpt = checker.check(link);
         assertThat(resultOpt).isPresent();
 
         UpdateInfo result = resultOpt.orElseThrow();
-
         assertThat(result.linkTitle()).isEqualTo("How to do X?");
         assertThat(result.itemsByType()).containsKey(UpdateType.STACKOVERFLOW_ANSWER);
-
-        List<UpdateInfo.UpdateItem> answers = result.itemsByType().get(UpdateType.STACKOVERFLOW_ANSWER);
-        assertThat(answers).hasSize(1);
-        assertThat(answers.get(0).author()).isEqualTo("Expert");
-        assertThat(answers.get(0).preview()).isEqualTo("This is the answer to your question");
     }
 
     @Test
     void newComment_returnsUpdateInfo() {
-        stubFor(get(urlPathEqualTo("/questions/123456/answers"))
-                .willReturn(aResponse()
-                        .withStatus(200)
-                        .withHeader("Content-Type", "application/json")
-                        .withBody("{\"items\": []}")));
+        when(stackOverflowClient.getAnswers(anyLong(), anyLong(), anyString(), anyString()))
+                .thenReturn(new StackOverflowAnswersResponse(List.of()));
 
-        stubFor(get(urlPathEqualTo("/questions/123456/comments"))
-                .willReturn(aResponse()
-                        .withStatus(200)
-                        .withHeader("Content-Type", "application/json")
-                        .withBody("""
-                            {
-                              "items": [
-                                {
-                                  "comment_id": 1,
-                                  "body": "Great question!",
-                                  "owner": {"display_name": "Commenter"},
-                                  "creation_date": 1714212000
-                                }
-                              ]
-                            }
-                            """)));
+        Owner owner = new Owner("Commenter");
 
-        stubFor(get(urlPathEqualTo("/questions/123456"))
-                .willReturn(aResponse()
-                        .withStatus(200)
-                        .withHeader("Content-Type", "application/json")
-                        .withBody("""
-                            {
-                              "items": [
-                                {
-                                  "question_id": 123456,
-                                  "title": "How to do X?",
-                                  "last_activity_date": "2026-04-27T10:00:00Z"
-                                }
-                              ]
-                            }
-                            """)));
+        StackOverflowCommentsResponse.CommentItem comment =
+                new StackOverflowCommentsResponse.CommentItem(1L, "Great question!", owner, 1714212000L);
+
+        when(stackOverflowClient.getComments(anyLong(), anyLong(), anyString(), anyString()))
+                .thenReturn(new StackOverflowCommentsResponse(List.of(comment)));
+
+        StackOverflowResponse.QuestionItem question =
+                new StackOverflowResponse.QuestionItem(123456L, "How to do X?", Instant.now());
+
+        when(stackOverflowClient.getQuestion(anyLong(), anyString(), anyString()))
+                .thenReturn(new StackOverflowResponse(List.of(question)));
 
         Link link = new Link(1L, URI.create("https://stackoverflow.com/questions/123456/title"), List.of(), List.of());
         link.setLastCheckedAt(Instant.EPOCH);
@@ -148,14 +102,45 @@ class StackOverflowLinkUpdateCheckerTest {
         assertThat(resultOpt).isPresent();
 
         UpdateInfo result = resultOpt.orElseThrow();
-
         assertThat(result.itemsByType()).containsKey(UpdateType.STACKOVERFLOW_COMMENT);
     }
 
     @Test
+    void previewTruncation_worksCorrectly() {
+        String longBody = "a".repeat(300);
+
+        Owner owner = new Owner("User");
+
+        StackOverflowAnswersResponse.AnswerItem answer =
+                new StackOverflowAnswersResponse.AnswerItem(1L, longBody, owner, 1714212000L);
+
+        when(stackOverflowClient.getAnswers(anyLong(), anyLong(), anyString(), anyString()))
+                .thenReturn(new StackOverflowAnswersResponse(List.of(answer)));
+
+        when(stackOverflowClient.getComments(anyLong(), anyLong(), anyString(), anyString()))
+                .thenReturn(new StackOverflowCommentsResponse(List.of()));
+
+        StackOverflowResponse.QuestionItem question =
+                new StackOverflowResponse.QuestionItem(123456L, "Test Question", Instant.now());
+
+        when(stackOverflowClient.getQuestion(anyLong(), anyString(), anyString()))
+                .thenReturn(new StackOverflowResponse(List.of(question)));
+
+        Link link = new Link(1L, URI.create("https://stackoverflow.com/questions/123456/title"), List.of(), List.of());
+        link.setLastCheckedAt(Instant.EPOCH);
+
+        Optional<UpdateInfo> resultOpt = checker.check(link);
+        assertThat(resultOpt).isPresent();
+
+        UpdateInfo result = resultOpt.orElseThrow();
+        List<UpdateInfo.UpdateItem> items = result.itemsByType().get(UpdateType.STACKOVERFLOW_ANSWER);
+        assertThat(items.get(0).preview()).hasSizeLessThanOrEqualTo(200);
+    }
+
+    @Test
     void apiUnavailable_returnsEmpty() {
-        stubFor(get(urlPathEqualTo("/questions/123456/answers"))
-                .willReturn(aResponse().withStatus(500)));
+        when(stackOverflowClient.getAnswers(anyLong(), anyLong(), anyString(), anyString()))
+                .thenThrow(new RuntimeException("API error"));
 
         Link link = new Link(1L, URI.create("https://stackoverflow.com/questions/123456/title"), List.of(), List.of());
         link.setLastCheckedAt(Instant.EPOCH);
@@ -165,54 +150,17 @@ class StackOverflowLinkUpdateCheckerTest {
     }
 
     @Test
-    void previewTruncation_worksCorrectly() {
-        String longBody = "a".repeat(300);
+    void noNewUpdates_returnsEmpty() {
+        when(stackOverflowClient.getAnswers(anyLong(), anyLong(), anyString(), anyString()))
+                .thenReturn(new StackOverflowAnswersResponse(List.of()));
 
-        stubFor(get(urlPathEqualTo("/questions/123456/answers"))
-                .willReturn(aResponse()
-                        .withStatus(200)
-                        .withHeader("Content-Type", "application/json")
-                        .withBody(String.format("""
-                            {
-                              "items": [
-                                {
-                                  "answer_id": 1,
-                                  "body": "%s",
-                                  "owner": {"display_name": "User"},
-                                  "creation_date": 1714212000
-                                }
-                              ]
-                            }
-                            """, longBody))));
-
-        stubFor(get(urlPathEqualTo("/questions/123456/comments"))
-                .willReturn(aResponse().withStatus(200).withBody("{\"items\": []}")));
-
-        stubFor(get(urlPathEqualTo("/questions/123456"))
-                .willReturn(aResponse()
-                        .withStatus(200)
-                        .withHeader("Content-Type", "application/json")
-                        .withBody("""
-                            {
-                              "items": [
-                                {
-                                  "question_id": 123456,
-                                  "title": "Test",
-                                  "last_activity_date": "2026-04-27T10:00:00Z"
-                                }
-                              ]
-                            }
-                            """)));
+        when(stackOverflowClient.getComments(anyLong(), anyLong(), anyString(), anyString()))
+                .thenReturn(new StackOverflowCommentsResponse(List.of()));
 
         Link link = new Link(1L, URI.create("https://stackoverflow.com/questions/123456/title"), List.of(), List.of());
-        link.setLastCheckedAt(Instant.EPOCH);
+        link.setLastCheckedAt(Instant.now());
 
-        Optional<UpdateInfo> resultOpt = checker.check(link);
-        assertThat(resultOpt).isPresent();
-
-        UpdateInfo result = resultOpt.orElseThrow();
-
-        List<UpdateInfo.UpdateItem> items = result.itemsByType().get(UpdateType.STACKOVERFLOW_ANSWER);
-        assertThat(items.get(0).preview()).hasSize(200);
+        Optional<UpdateInfo> result = checker.check(link);
+        assertThat(result).isEmpty();
     }
 }

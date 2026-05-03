@@ -7,11 +7,10 @@ import backend.academy.linktracker.scrapper.model.Link;
 import backend.academy.linktracker.scrapper.service.MessageSender;
 import backend.academy.linktracker.scrapper.service.UpdateInfo;
 import io.grpc.ManagedChannel;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.grpc.client.GrpcChannelFactory;
 import org.springframework.stereotype.Component;
-
-import java.util.List;
 
 @Slf4j
 @Component
@@ -27,12 +26,12 @@ public class GrpcMessageSender implements MessageSender {
     @Override
     public void sendUpdate(Link link, UpdateInfo updateInfo, List<Long> chatIds) {
         SendUpdateRequest request = SendUpdateRequest.newBuilder()
-            .setId(link.getId())
-            .setUrl(link.getUrl().toString())
-            .setTitle(getLinkTitle(updateInfo, link))
-            .addAllTgChatIds(chatIds)
-            .addAllUpdates(buildProtoUpdates(updateInfo))
-            .build();
+                .setId(link.getId())
+                .setUrl(link.getUrl().toString())
+                .setTitle(getLinkTitle(updateInfo, link))
+                .addAllTgChatIds(chatIds)
+                .addAllUpdates(buildProtoUpdates(updateInfo))
+                .build();
 
         try {
             stub.sendUpdate(request);
@@ -45,12 +44,12 @@ public class GrpcMessageSender implements MessageSender {
     @Override
     public void sendError(Link link, String errorMessage, List<Long> chatIds) {
         SendUpdateRequest request = SendUpdateRequest.newBuilder()
-            .setId(link.getId())
-            .setUrl(link.getUrl().toString())
-            .setTitle("Error checking link")
-            .setError(errorMessage)
-            .addAllTgChatIds(chatIds)
-            .build();
+                .setId(link.getId())
+                .setUrl(link.getUrl().toString())
+                .setTitle("Error checking link")
+                .setError(errorMessage)
+                .addAllTgChatIds(chatIds)
+                .build();
 
         try {
             stub.sendUpdate(request);
@@ -68,15 +67,14 @@ public class GrpcMessageSender implements MessageSender {
 
     private List<UpdateItem> buildProtoUpdates(UpdateInfo updateInfo) {
         return updateInfo.itemsByType().entrySet().stream()
-            .flatMap(entry -> entry.getValue().stream()
-                .map(item -> UpdateItem.newBuilder()
-                    .setType(entry.getKey().name())
-                    .setTitle(defaultIfNull(item.title()))
-                    .setAuthor(defaultIfNull(item.author()))
-                    .setCreatedAt(item.createdAt().toString())
-                    .setPreview(defaultIfNull(item.preview()))
-                    .build()))
-            .toList();
+                .flatMap(entry -> entry.getValue().stream().map(item -> UpdateItem.newBuilder()
+                        .setType(entry.getKey().name())
+                        .setTitle(defaultIfNull(item.title()))
+                        .setAuthor(defaultIfNull(item.author()))
+                        .setCreatedAt(item.createdAt().toString())
+                        .setPreview(defaultIfNull(item.preview()))
+                        .build()))
+                .toList();
     }
 
     private String defaultIfNull(String value) {

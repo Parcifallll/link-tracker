@@ -33,13 +33,13 @@ public class BotUpdateGrpcService extends BotUpdateServiceGrpc.BotUpdateServiceI
             });
 
             responseObserver.onNext(
-                SendUpdateResponse.newBuilder().setSuccess(true).build());
+                    SendUpdateResponse.newBuilder().setSuccess(true).build());
             responseObserver.onCompleted();
 
         } catch (Exception e) {
             log.atError().addKeyValue("error", e.getMessage()).log("Failed to process update");
             responseObserver.onError(
-                io.grpc.Status.INTERNAL.withDescription("Internal error").asRuntimeException());
+                    io.grpc.Status.INTERNAL.withDescription("Internal error").asRuntimeException());
         } finally {
             MDC.clear();
         }
@@ -47,9 +47,9 @@ public class BotUpdateGrpcService extends BotUpdateServiceGrpc.BotUpdateServiceI
 
     private String formatMessage(SendUpdateRequest request) {
         if (!request.getError().isBlank()) {
-            return "Ошибка при проверке ссылки\n\n" +
-                "Ссылка: " + request.getUrl() + "\n" +
-                "Ошибка: " + request.getError();
+            return "Ошибка при проверке ссылки\n\n" + "Ссылка: "
+                    + request.getUrl() + "\n" + "Ошибка: "
+                    + request.getError();
         }
 
         StringBuilder sb = new StringBuilder();

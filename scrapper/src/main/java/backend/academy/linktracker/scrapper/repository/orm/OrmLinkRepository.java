@@ -1,8 +1,8 @@
 package backend.academy.linktracker.scrapper.repository.orm;
 
+import backend.academy.linktracker.scrapper.dto.link.LinkWithChats;
 import backend.academy.linktracker.scrapper.model.Chat;
 import backend.academy.linktracker.scrapper.model.Link;
-import backend.academy.linktracker.scrapper.dto.link.LinkWithChats;
 import backend.academy.linktracker.scrapper.repository.LinkRepository;
 import backend.academy.linktracker.scrapper.repository.entity.LinkEntity;
 import backend.academy.linktracker.scrapper.repository.entity.SubscriptionEntity;
@@ -34,15 +34,16 @@ public class OrmLinkRepository implements LinkRepository {
     @Transactional
     public Link save(long chatId, Link link) {
         LinkEntity linkEntity = linkRepo.findByUrl(link.getUrl().toString())
-            .orElseGet(() -> linkRepo.save(new LinkEntity(link.getUrl().toString())));
+                .orElseGet(() -> linkRepo.save(new LinkEntity(link.getUrl().toString())));
 
         Chat chat = chatRepo.getReferenceById(chatId);
         String[] tags = toArray(link.getTags());
         String[] filters = toArray(link.getFilters());
 
         SubscriptionId subId = new SubscriptionId(chatId, linkEntity.getId());
-        SubscriptionEntity sub = subscriptionRepo.findById(subId)
-            .orElseGet(() -> new SubscriptionEntity(chat, linkEntity, tags, filters));
+        SubscriptionEntity sub = subscriptionRepo
+                .findById(subId)
+                .orElseGet(() -> new SubscriptionEntity(chat, linkEntity, tags, filters));
 
         sub.setTags(tags);
         sub.setFilters(filters);
@@ -54,21 +55,21 @@ public class OrmLinkRepository implements LinkRepository {
     @Override
     @Transactional
     public void delete(long chatId, URI url) {
-        subscriptionRepo.findByChatIdAndUrl(chatId, url.toString())
-            .ifPresent(subscriptionRepo::delete);
+        subscriptionRepo.findByChatIdAndUrl(chatId, url.toString()).ifPresent(subscriptionRepo::delete);
     }
 
     @Override
     public List<Link> findAll(long chatId) {
         return subscriptionRepo.findByChatId(chatId).stream()
-            .map(s -> toLink(s.getLink(), s.getTags(), s.getFilters()))
-            .toList();
+                .map(s -> toLink(s.getLink(), s.getTags(), s.getFilters()))
+                .toList();
     }
 
     @Override
     public Optional<Link> findByUrl(long chatId, URI url) {
-        return subscriptionRepo.findByChatIdAndUrl(chatId, url.toString())
-            .map(s -> toLink(s.getLink(), s.getTags(), s.getFilters()));
+        return subscriptionRepo
+                .findByChatIdAndUrl(chatId, url.toString())
+                .map(s -> toLink(s.getLink(), s.getTags(), s.getFilters()));
     }
 
     @Override
@@ -82,8 +83,7 @@ public class OrmLinkRepository implements LinkRepository {
 
     @Override
     public List<LinkWithChats> findLinksToCheck(int limit) {
-        List<LinkEntity> linkEntities =
-            linkRepo.findTopByOrderByLastCheckedAtAsc(PageRequest.of(0, limit));
+        List<LinkEntity> linkEntities = linkRepo.findTopByOrderByLastCheckedAtAsc(PageRequest.of(0, limit));
 
         if (linkEntities.isEmpty()) {
             return List.of();
@@ -95,23 +95,23 @@ public class OrmLinkRepository implements LinkRepository {
         subscriptionRepo.findByLinkIds(linkIds).forEach(sub -> {
             long linkId = sub.getLink().getId();
             chatIdsByLinkId
-                .computeIfAbsent(linkId, k -> new ArrayList<>())
-                .add(sub.getChat().getChatId());
+                    .computeIfAbsent(linkId, k -> new ArrayList<>())
+                    .add(sub.getChat().getChatId());
         });
 
         return linkEntities.stream()
-            .map(entity -> new LinkWithChats(
-                toLink(entity, new String[0], new String[0]),
-                chatIdsByLinkId.getOrDefault(entity.getId(), List.of())))
-            .toList();
+                .map(entity -> new LinkWithChats(
+                        toLink(entity, new String[0], new String[0]),
+                        chatIdsByLinkId.getOrDefault(entity.getId(), List.of())))
+                .toList();
     }
 
     private Link toLink(LinkEntity entity, String[] tags, String[] filters) {
         Link link = new Link(
-            entity.getId(),
-            URI.create(entity.getUrl()),
-            tags == null ? List.of() : Arrays.asList(tags),
-            filters == null ? List.of() : Arrays.asList(filters));
+                entity.getId(),
+                URI.create(entity.getUrl()),
+                tags == null ? List.of() : Arrays.asList(tags),
+                filters == null ? List.of() : Arrays.asList(filters));
         link.setLastCheckedAt(entity.getLastCheckedAt());
         return link;
     }

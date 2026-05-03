@@ -1,7 +1,7 @@
 package backend.academy.linktracker.scrapper.repository.sql;
 
-import backend.academy.linktracker.scrapper.model.Link;
 import backend.academy.linktracker.scrapper.dto.link.LinkWithChats;
+import backend.academy.linktracker.scrapper.model.Link;
 import backend.academy.linktracker.scrapper.repository.LinkRepository;
 import java.net.URI;
 import java.sql.Array;
@@ -9,10 +9,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -37,7 +34,7 @@ public class SqlLinkRepository implements LinkRepository {
             """, link.getUrl().toString(), Timestamp.from(link.getLastCheckedAt()));
 
         Long linkId = jdbcTemplate.queryForObject(
-            "SELECT id FROM links WHERE url = ?", Long.class, link.getUrl().toString());
+                "SELECT id FROM links WHERE url = ?", Long.class, link.getUrl().toString());
 
         // insert subscription with tags and filters
         Array tags = createArray(link.getTags());
@@ -99,7 +96,7 @@ public class SqlLinkRepository implements LinkRepository {
 
     private Array createArray(List<String> items) {
         return jdbcTemplate.execute((java.sql.Connection con) ->
-            con.createArrayOf("text", items == null ? new String[0] : items.toArray(String[]::new)));
+                con.createArrayOf("text", items == null ? new String[0] : items.toArray(String[]::new)));
     }
 
     @Override

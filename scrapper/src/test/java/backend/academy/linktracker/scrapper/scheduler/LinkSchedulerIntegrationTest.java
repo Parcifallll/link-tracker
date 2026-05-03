@@ -1,63 +1,194 @@
 package backend.academy.linktracker.scrapper.scheduler;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import backend.academy.linktracker.scrapper.TestcontainersConfiguration;
+import backend.academy.linktracker.scrapper.model.Chat;
 import backend.academy.linktracker.scrapper.model.Link;
 import backend.academy.linktracker.scrapper.properties.SchedulerProperties;
+import backend.academy.linktracker.scrapper.repository.ChatRepository;
 import backend.academy.linktracker.scrapper.repository.LinkRepository;
 import backend.academy.linktracker.scrapper.service.LinkUpdateService;
 import backend.academy.linktracker.scrapper.service.MessageSender;
 import backend.academy.linktracker.scrapper.service.UpdateInfo;
 import backend.academy.linktracker.scrapper.service.UpdateType;
 import java.net.URI;
+import java.sql.Timestamp;
 import java.time.Instant;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
-@ExtendWith(MockitoExtension.class)
+@SpringBootTest(properties = {"app.database.access-type=ORM", "app.scheduler.interval=PT1H"})
+@Testcontainers
+@ActiveProfiles("test")
+@Import(TestcontainersConfiguration.class)
 class LinkSchedulerIntegrationTest {
 
-    @Mock
+    @Autowired
+    LinkScheduler scheduler;
+
+    @Autowired
     LinkRepository linkRepository;
 
-    @Mock
+    @Autowired
+    ChatRepository chatRepository;
+
+    @Autowired
+    JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    SchedulerProperties schedulerProperties;
+
+    @MockitoBean
     LinkUpdateService linkUpdateService;
 
-    @Mock
+    @MockitoBean
     MessageSender messageSender;
 
-    SchedulerProperties properties;
+    private static final long CHAT_ID = 1L;
 
-    LinkScheduler scheduler;
+    private static final UpdateInfo FAKE_UPDATE = new UpdateInfo(
+            "user/repo",
+            Map.of(
+                    UpdateType.GITHUB_ISSUE,
+                    List.of(new UpdateInfo.UpdateItem("Issue title", "author", Instant.now(), "preview"))));
 
     @BeforeEach
     void setUp() {
-        properties = new SchedulerProperties();
-        properties.setBatchSize(100);
-        scheduler = new LinkScheduler(linkRepository, linkUpdateService, messageSender, properties);
+        jdbcTemplate.update("DELETE FROM subscriptions");
+        jdbcTemplate.update("DELETE FROM links");
+        jdbcTemplate.update("DELETE FROM chats");
+
+        chatRepository.save(new Chat(CHAT_ID));
+        schedulerProperties.setBatchSize(100);
     }
 
     @Test
-    void batchProcessing_processesAllLinks() {
-        Link link1 = new Link(1L, URI.create("https://github.com/user/repo1"), List.of(), List.of());
-        Link link2 = new Link(2L, URI.create("https://github.com/user/repo2"), List.of(), List.of());
-        Link link3 = new Link(3L, URI.create("https://github.com/user/repo3"), List.of(), List.of());
+    void emptyDatabase_checkUpdates_doesNothing() {
+        scheduler.checkUpdates();
 
-        Map<Link, List<Long>> batch = new LinkedHashMap<>();
-        batch.put(link1, List.of(1L));
-        batch.put(link2, List.of(2L));
-        batch.put(link3, List.of(3L));
+        verify(linkUpdateService, never()).checkUpdate(any());
+        verify(messageSender, never()).sendUpdate(any(), any(), any());
+    }
 
-        when(linkRepository.findLinksToCheck(100)).thenReturn(batch);
+    @Test
+    void linksPresent_updatesFound_sendsNotification() {
+        Link link = new Link(0, URI.create("https://github.com/user/repo"), List.of(), List.of());
+        linkRepository.save(CHAT_ID, link);
+
+        when(linkUpdateService.checkUpdate(any())).thenReturn(Optional.of(FAKE_UPDATE));
+
+        scheduler.checkUpdates();
+
+        verify(messageSender).sendUpdate(any(Link.class), eq(FAKE_UPDATE), any());
+
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+                "SELECT last_checked_at FROM links WHERE url = ?", "https://github.com/user/repo");
+
+        assertThat(rows).isNotEmpty();
+        assertThat(rows.get(0).get("last_checked_at")).isNotNull();
+    }
+
+    @Test
+    void linksPresent_noUpdatesFound_doesNotSend() {
+        linkRepository.save(CHAT_ID, new Link(0, URI.create("https://github.com/user/repo"), List.of(), List.of()));
+        when(linkUpdateService.checkUpdate(any())).thenReturn(Optional.empty());
+
+        scheduler.checkUpdates();
+
+        verify(messageSender, never()).sendUpdate(any(), any(), any());
+    }
+
+    @Test
+    void errorInOneLink_doesNotStopProcessingOthers() {
+        URI url1 = URI.create("https://github.com/user/repo1");
+        URI url2 = URI.create("https://github.com/user/repo2");
+        URI url3 = URI.create("https://github.com/user/repo3");
+
+        linkRepository.save(CHAT_ID, new Link(0, url1, List.of(), List.of()));
+        linkRepository.save(CHAT_ID, new Link(0, url2, List.of(), List.of()));
+        linkRepository.save(CHAT_ID, new Link(0, url3, List.of(), List.of()));
+
+        // Spread timestamps so processing order is deterministic (oldest first)
+        jdbcTemplate.update(
+                "UPDATE links SET last_checked_at = ? WHERE url = ?",
+                Timestamp.from(Instant.EPOCH.plusSeconds(1)),
+                url1.toString());
+        jdbcTemplate.update(
+                "UPDATE links SET last_checked_at = ? WHERE url = ?",
+                Timestamp.from(Instant.EPOCH.plusSeconds(2)),
+                url2.toString());
+        jdbcTemplate.update(
+                "UPDATE links SET last_checked_at = ? WHERE url = ?",
+                Timestamp.from(Instant.EPOCH.plusSeconds(3)),
+                url3.toString());
+
+        when(linkUpdateService.checkUpdate(
+                        argThat(link -> link != null && link.getUrl().equals(url1))))
+                .thenReturn(Optional.empty());
+
+        when(linkUpdateService.checkUpdate(
+                        argThat(link -> link != null && link.getUrl().equals(url2))))
+                .thenThrow(new RuntimeException("API Error"));
+
+        when(linkUpdateService.checkUpdate(
+                        argThat(link -> link != null && link.getUrl().equals(url3))))
+                .thenReturn(Optional.empty());
+
+        scheduler.checkUpdates();
+
+        // All three links must have been attempted
+        verify(linkUpdateService, times(3)).checkUpdate(any(Link.class));
+
+        verify(messageSender)
+                .sendError(argThat(link -> link != null && link.getUrl().equals(url2)), any(), any());
+
+        verify(messageSender, never())
+                .sendError(argThat(link -> link != null && !link.getUrl().equals(url2)), any(), any());
+    }
+
+    @Test
+    void chatIdsCorrectlyPassedToMessageSender() {
+        long chatId2 = 2L;
+        chatRepository.save(new Chat(chatId2));
+
+        URI url = URI.create("https://github.com/user/shared-repo");
+        linkRepository.save(CHAT_ID, new Link(0, url, List.of(), List.of()));
+        linkRepository.save(chatId2, new Link(0, url, List.of(), List.of()));
+
+        when(linkUpdateService.checkUpdate(any())).thenReturn(Optional.of(FAKE_UPDATE));
+
+        scheduler.checkUpdates();
+
+        verify(messageSender)
+                .sendUpdate(any(), eq(FAKE_UPDATE), argThat(ids -> ids.containsAll(List.of(CHAT_ID, chatId2))));
+    }
+
+    @Test
+    void respectsBatchSize_onlyFetchesUpToLimit() {
+        for (int i = 0; i < 10; i++) {
+            linkRepository.save(
+                    CHAT_ID, new Link(0, URI.create("https://github.com/user/repo" + i), List.of(), List.of()));
+        }
+        schedulerProperties.setBatchSize(3);
         when(linkUpdateService.checkUpdate(any())).thenReturn(Optional.empty());
 
         scheduler.checkUpdates();
@@ -66,77 +197,30 @@ class LinkSchedulerIntegrationTest {
     }
 
     @Test
-    void errorInOneLink_doesNotStopOthers() {
-        Link link1 = new Link(1L, URI.create("https://github.com/user/repo1"), List.of(), List.of());
-        Link link2 = new Link(2L, URI.create("https://github.com/user/repo2"), List.of(), List.of());
-        Link link3 = new Link(3L, URI.create("https://github.com/user/repo3"), List.of(), List.of());
+    void tenLinks_batchSizeFive_allRecordsUpdatedInTwoRuns() {
+        for (int i = 0; i < 10; i++) {
+            URI url = URI.create("https://github.com/user/repo" + i);
+            linkRepository.save(CHAT_ID, new Link(0, url, List.of(), List.of()));
+            jdbcTemplate.update(
+                    "UPDATE links SET last_checked_at = ? WHERE url = ?",
+                    Timestamp.from(Instant.EPOCH.plusSeconds(i)),
+                    url.toString());
+        }
 
-        Map<Link, List<Long>> batch = new LinkedHashMap<>();
-        batch.put(link1, List.of(1L));
-        batch.put(link2, List.of(2L));
-        batch.put(link3, List.of(3L));
+        schedulerProperties.setBatchSize(5);
 
-        when(linkRepository.findLinksToCheck(100)).thenReturn(batch);
-        when(linkUpdateService.checkUpdate(link1)).thenReturn(Optional.empty());
-        when(linkUpdateService.checkUpdate(link2)).thenThrow(new RuntimeException("API Error"));
-        when(linkUpdateService.checkUpdate(link3)).thenReturn(Optional.empty());
-
-        scheduler.checkUpdates();
-
-        verify(linkUpdateService).checkUpdate(link1);
-        verify(linkUpdateService).checkUpdate(link2);
-        verify(linkUpdateService).checkUpdate(link3);
-
-        verify(messageSender).sendError(eq(link2), any(), eq(List.of(2L)));
-    }
-
-    @Test
-    void updateFound_sendsNotification() {
-        Link link = new Link(1L, URI.create("https://github.com/user/repo"), List.of(), List.of());
-
-        UpdateInfo updateInfo = new UpdateInfo(
-                "user/repo",
-                Map.of(
-                        UpdateType.GITHUB_ISSUE,
-                        List.of(new UpdateInfo.UpdateItem("New Issue", "author", Instant.now(), "preview"))));
-
-        when(linkRepository.findLinksToCheck(100)).thenReturn(Map.of(link, List.of(1L, 2L)));
-        when(linkUpdateService.checkUpdate(link)).thenReturn(Optional.of(updateInfo));
+        doAnswer(inv -> {
+                    Link link = inv.getArgument(0);
+                    link.setLastCheckedAt(Instant.now());
+                    return Optional.of(FAKE_UPDATE);
+                })
+                .when(linkUpdateService)
+                .checkUpdate(any(Link.class));
 
         scheduler.checkUpdates();
-
-        verify(messageSender).sendUpdate(eq(link), eq(updateInfo), eq(List.of(1L, 2L)));
-        verify(linkRepository).updateLastCheckedAt(eq(1L), any(Instant.class));
-    }
-
-    @Test
-    void noUpdates_doesNotSendNotification() {
-        Link link = new Link(1L, URI.create("https://github.com/user/repo"), List.of(), List.of());
-
-        when(linkRepository.findLinksToCheck(100)).thenReturn(Map.of(link, List.of(1L)));
-        when(linkUpdateService.checkUpdate(link)).thenReturn(Optional.empty());
+        verify(messageSender, times(5)).sendUpdate(any(), any(), any());
 
         scheduler.checkUpdates();
-
-        verify(messageSender, never()).sendUpdate(any(), any(), any());
-    }
-
-    @Test
-    void emptyBatch_doesNothing() {
-        when(linkRepository.findLinksToCheck(100)).thenReturn(Map.of());
-
-        scheduler.checkUpdates();
-
-        verify(linkUpdateService, never()).checkUpdate(any());
-        verify(messageSender, never()).sendUpdate(any(), any(), any());
-    }
-
-    @Test
-    void respectsBatchSize() {
-        when(linkRepository.findLinksToCheck(100)).thenReturn(Map.of());
-
-        scheduler.checkUpdates();
-
-        verify(linkRepository).findLinksToCheck(100);
+        verify(messageSender, times(10)).sendUpdate(any(), any(), any());
     }
 }
