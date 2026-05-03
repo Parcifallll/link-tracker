@@ -1,6 +1,7 @@
 package backend.academy.linktracker.scrapper.repository.sql;
 
 import backend.academy.linktracker.scrapper.model.Link;
+import backend.academy.linktracker.scrapper.dto.link.LinkWithChats;
 import backend.academy.linktracker.scrapper.repository.LinkRepository;
 import java.net.URI;
 import java.sql.Array;
@@ -36,7 +37,7 @@ public class SqlLinkRepository implements LinkRepository {
             """, link.getUrl().toString(), Timestamp.from(link.getLastCheckedAt()));
 
         Long linkId = jdbcTemplate.queryForObject(
-                "SELECT id FROM links WHERE url = ?", Long.class, link.getUrl().toString());
+            "SELECT id FROM links WHERE url = ?", Long.class, link.getUrl().toString());
 
         // insert subscription with tags and filters
         Array tags = createArray(link.getTags());
@@ -80,21 +81,6 @@ public class SqlLinkRepository implements LinkRepository {
         return result.stream().findFirst();
     }
 
-    @Override
-    public Map<Long, List<Link>> findAllWithChatIds() {
-        Map<Long, List<Link>> result = new HashMap<>();
-        jdbcTemplate.query("""
-            SELECT s.chat_id, l.id, l.url, l.last_checked_at, s.tags, s.filters
-            FROM links l
-            JOIN subscriptions s ON l.id = s.link_id
-            """, rs -> {
-            long chatId = rs.getLong("chat_id");
-            Link link = mapLink(rs);
-            result.computeIfAbsent(chatId, id -> new ArrayList<>()).add(link);
-        });
-        return result;
-    }
-
     private Link mapLink(ResultSet rs) throws SQLException {
         long id = rs.getLong("id");
         URI url = URI.create(rs.getString("url"));
@@ -113,7 +99,7 @@ public class SqlLinkRepository implements LinkRepository {
 
     private Array createArray(List<String> items) {
         return jdbcTemplate.execute((java.sql.Connection con) ->
-                con.createArrayOf("text", items == null ? new String[0] : items.toArray(String[]::new)));
+            con.createArrayOf("text", items == null ? new String[0] : items.toArray(String[]::new)));
     }
 
     @Override
@@ -122,8 +108,8 @@ public class SqlLinkRepository implements LinkRepository {
     }
 
     @Override
-    public Map<Link, List<Long>> findLinksToCheck(int limit) {
-        return Map.of(); // mock - no further support for sql implementation (not required)
+    public List<LinkWithChats> findLinksToCheck(int limit) {
+        // mock - no further support for sql implementation (not required)
+        return List.of();
     }
-
 }

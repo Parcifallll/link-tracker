@@ -2,22 +2,22 @@ package backend.academy.linktracker.scrapper.repository.orm;
 
 import backend.academy.linktracker.scrapper.model.Chat;
 import backend.academy.linktracker.scrapper.model.Link;
+import backend.academy.linktracker.scrapper.dto.link.LinkWithChats;
 import backend.academy.linktracker.scrapper.repository.LinkRepository;
 import backend.academy.linktracker.scrapper.repository.entity.LinkEntity;
 import backend.academy.linktracker.scrapper.repository.entity.SubscriptionEntity;
 import backend.academy.linktracker.scrapper.repository.entity.SubscriptionId;
-import jakarta.persistence.EntityManager;
 import java.net.URI;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,29 +26,27 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class OrmLinkRepository implements LinkRepository {
 
-    private final EntityManager em;
+    private final LinkEntityJpaRepository linkRepo;
+    private final SubscriptionEntityJpaRepository subscriptionRepo;
+    private final ChatJpaRepository chatRepo;
 
     @Override
     @Transactional
     public Link save(long chatId, Link link) {
-        LinkEntity linkEntity = findLinkByUrl(link.getUrl().toString()).orElseGet(() -> {
-            LinkEntity e = new LinkEntity(link.getUrl().toString());
-            em.persist(e);
-            return e;
-        });
+        LinkEntity linkEntity = linkRepo.findByUrl(link.getUrl().toString())
+            .orElseGet(() -> linkRepo.save(new LinkEntity(link.getUrl().toString())));
 
-        Chat chat = em.find(Chat.class, chatId);
+        Chat chat = chatRepo.getReferenceById(chatId);
         String[] tags = toArray(link.getTags());
         String[] filters = toArray(link.getFilters());
 
-        SubscriptionEntity sub = em.find(SubscriptionEntity.class, new SubscriptionId(chatId, linkEntity.getId()));
-        if (sub == null) {
-            sub = new SubscriptionEntity(chat, linkEntity, tags, filters);
-            em.persist(sub);
-        } else {
-            sub.setTags(tags);
-            sub.setFilters(filters);
-        }
+        SubscriptionId subId = new SubscriptionId(chatId, linkEntity.getId());
+        SubscriptionEntity sub = subscriptionRepo.findById(subId)
+            .orElseGet(() -> new SubscriptionEntity(chat, linkEntity, tags, filters));
+
+        sub.setTags(tags);
+        sub.setFilters(filters);
+        subscriptionRepo.save(sub);
 
         return toLink(linkEntity, tags, filters);
     }
@@ -56,120 +54,69 @@ public class OrmLinkRepository implements LinkRepository {
     @Override
     @Transactional
     public void delete(long chatId, URI url) {
-        findSubscriptionByChatIdAndUrl(chatId, url.toString()).ifPresent(em::remove);
+        subscriptionRepo.findByChatIdAndUrl(chatId, url.toString())
+            .ifPresent(subscriptionRepo::delete);
     }
 
     @Override
     public List<Link> findAll(long chatId) {
-        return em.createQuery("""
-            SELECT s FROM SubscriptionEntity s
-            JOIN FETCH s.link
-            WHERE s.chat.chatId = :chatId
-            """, SubscriptionEntity.class).setParameter("chatId", chatId).getResultList().stream()
-                .map(s -> toLink(s.getLink(), s.getTags(), s.getFilters()))
-                .toList();
+        return subscriptionRepo.findByChatId(chatId).stream()
+            .map(s -> toLink(s.getLink(), s.getTags(), s.getFilters()))
+            .toList();
     }
 
     @Override
     public Optional<Link> findByUrl(long chatId, URI url) {
-        return findSubscriptionByChatIdAndUrl(chatId, url.toString())
-                .map(s -> toLink(s.getLink(), s.getTags(), s.getFilters()));
+        return subscriptionRepo.findByChatIdAndUrl(chatId, url.toString())
+            .map(s -> toLink(s.getLink(), s.getTags(), s.getFilters()));
     }
 
     @Override
-    public Map<Long, List<Link>> findAllWithChatIds() {
-        Map<Long, List<Link>> result = new HashMap<>();
-        em.createQuery("""
-            SELECT s FROM SubscriptionEntity s
-            JOIN FETCH s.link
-            JOIN FETCH s.chat
-            """, SubscriptionEntity.class).getResultList().forEach(s -> {
-            long cid = s.getChat().getChatId();
-            result.computeIfAbsent(cid, id -> new ArrayList<>()).add(toLink(s.getLink(), s.getTags(), s.getFilters()));
+    @Transactional
+    public void updateLastCheckedAt(long linkId, Instant lastCheckedAt) {
+        linkRepo.findById(linkId).ifPresent(entity -> {
+            entity.setLastCheckedAt(lastCheckedAt);
+            linkRepo.save(entity);
         });
-        return result;
     }
 
-    private Optional<LinkEntity> findLinkByUrl(String url) {
-        List<LinkEntity> result = em.createQuery("SELECT l FROM LinkEntity l WHERE l.url = :url", LinkEntity.class)
-                .setParameter("url", url)
-                .getResultList();
-        return result.stream().findFirst();
-    }
+    @Override
+    public List<LinkWithChats> findLinksToCheck(int limit) {
+        List<LinkEntity> linkEntities =
+            linkRepo.findTopByOrderByLastCheckedAtAsc(PageRequest.of(0, limit));
 
-    private Optional<SubscriptionEntity> findSubscriptionByChatIdAndUrl(long chatId, String url) {
-        List<SubscriptionEntity> result = em.createQuery("""
-            SELECT s FROM SubscriptionEntity s
-            JOIN FETCH s.link
-            WHERE s.chat.chatId = :chatId AND s.link.url = :url
-            """, SubscriptionEntity.class)
-                .setParameter("chatId", chatId)
-                .setParameter("url", url)
-                .getResultList();
-        return result.stream().findFirst();
+        if (linkEntities.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> linkIds = linkEntities.stream().map(LinkEntity::getId).toList();
+
+        Map<Long, List<Long>> chatIdsByLinkId = new HashMap<>();
+        subscriptionRepo.findByLinkIds(linkIds).forEach(sub -> {
+            long linkId = sub.getLink().getId();
+            chatIdsByLinkId
+                .computeIfAbsent(linkId, k -> new ArrayList<>())
+                .add(sub.getChat().getChatId());
+        });
+
+        return linkEntities.stream()
+            .map(entity -> new LinkWithChats(
+                toLink(entity, new String[0], new String[0]),
+                chatIdsByLinkId.getOrDefault(entity.getId(), List.of())))
+            .toList();
     }
 
     private Link toLink(LinkEntity entity, String[] tags, String[] filters) {
         Link link = new Link(
-                entity.getId(),
-                URI.create(entity.getUrl()),
-                tags == null ? List.of() : Arrays.asList(tags),
-                filters == null ? List.of() : Arrays.asList(filters));
+            entity.getId(),
+            URI.create(entity.getUrl()),
+            tags == null ? List.of() : Arrays.asList(tags),
+            filters == null ? List.of() : Arrays.asList(filters));
         link.setLastCheckedAt(entity.getLastCheckedAt());
         return link;
     }
 
     private String[] toArray(List<String> list) {
         return list == null ? new String[0] : list.toArray(String[]::new);
-    }
-
-    @Override
-    @Transactional
-    public void updateLastCheckedAt(long linkId, Instant lastCheckedAt) {
-        LinkEntity entity = em.find(LinkEntity.class, linkId);
-        if (entity != null) entity.setLastCheckedAt(lastCheckedAt);
-    }
-
-    @Override
-    public Map<Link, List<Long>> findLinksToCheck(int limit) {
-        List<LinkEntity> linkEntities = em.createQuery(
-                        "SELECT l FROM LinkEntity l ORDER BY l.lastCheckedAt DESC", LinkEntity.class)
-                .setMaxResults(limit)
-                .getResultList();
-
-        if (linkEntities.isEmpty()) {
-            return Map.of();
-        }
-
-        List<Long> linkIds = linkEntities.stream().map(LinkEntity::getId).toList();
-
-        List<SubscriptionEntity> subscriptions = em.createQuery("""
-            SELECT s FROM SubscriptionEntity s
-            JOIN FETCH s.chat
-            WHERE s.link.id IN :linkIds
-            """, SubscriptionEntity.class)
-                .setParameter("linkIds", linkIds)
-                .getResultList();
-
-        Map<Long, List<Long>> chatIdsByLinkId = new HashMap<>();
-
-        for (SubscriptionEntity sub : subscriptions) {
-            long linkId = sub.getLink().getId();
-            chatIdsByLinkId
-                    .computeIfAbsent(linkId, k -> new ArrayList<>())
-                    .add(sub.getChat().getChatId());
-        }
-
-        Map<Link, List<Long>> result = new LinkedHashMap<>();
-        for (LinkEntity linkEntity : linkEntities) {
-            long linkId = linkEntity.getId();
-
-            Link link = toLink(linkEntity, new String[0], new String[0]);
-            List<Long> chatIds = chatIdsByLinkId.getOrDefault(linkId, List.of());
-
-            result.put(link, chatIds);
-        }
-
-        return result;
     }
 }

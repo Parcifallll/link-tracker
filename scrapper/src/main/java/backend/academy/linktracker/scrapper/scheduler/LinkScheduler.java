@@ -1,14 +1,12 @@
-// scrapper/src/main/java/backend/academy/linktracker/scrapper/scheduler/LinkScheduler.java
 package backend.academy.linktracker.scrapper.scheduler;
 
-import backend.academy.linktracker.scrapper.model.Link;
+import backend.academy.linktracker.scrapper.dto.link.LinkWithChats;
 import backend.academy.linktracker.scrapper.properties.SchedulerProperties;
 import backend.academy.linktracker.scrapper.repository.LinkRepository;
 import backend.academy.linktracker.scrapper.service.LinkUpdateService;
 import backend.academy.linktracker.scrapper.service.MessageSender;
 import backend.academy.linktracker.scrapper.service.UpdateInfo;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,34 +30,37 @@ public class LinkScheduler {
     public void checkUpdates() {
         log.info("Starting link updates check (batch size: {})", schedulerProperties.getBatchSize());
 
-        Map<Link, List<Long>> linksWithChatIds = linkRepository.findLinksToCheck(schedulerProperties.getBatchSize());
+        List<LinkWithChats> linksToCheck = linkRepository.findLinksToCheck(schedulerProperties.getBatchSize());
 
-        if (linksWithChatIds.isEmpty()) {
+        if (linksToCheck.isEmpty()) {
             log.info("No links to check");
             return;
         }
 
-        log.info("Checking {} links", linksWithChatIds.size());
+        log.info("Checking {} links", linksToCheck.size());
 
-        linksWithChatIds.forEach((link, chatIds) -> {
+        linksToCheck.forEach(linkWithChats -> {
+            var link = linkWithChats.link();
+            var chatIds = linkWithChats.chatIds();
+
             MDC.put("url", link.getUrl().toString());
             MDC.put("linkId", String.valueOf(link.getId()));
 
             try {
                 Optional<UpdateInfo> updateOpt = linkUpdateService.checkUpdate(link);
 
-                if (updateOpt.isPresent()) {
-                    UpdateInfo updateInfo = updateOpt.orElseThrow();
-
-                    linkRepository.updateLastCheckedAt(link.getId(), link.getLastCheckedAt());
-
-                    messageSender.sendUpdate(link, updateInfo, chatIds);
-
-                    log.info("Updates found and sent for link: {} | title: {}", link.getUrl(), updateInfo.linkTitle());
-                } else {
+                if (updateOpt.isEmpty()) {
                     log.debug("No updates for link: {}", link.getUrl());
+                    return;
                 }
 
+                UpdateInfo updateInfo = updateOpt.get();
+
+                linkRepository.updateLastCheckedAt(link.getId(), link.getLastCheckedAt());
+
+                messageSender.sendUpdate(link, updateInfo, chatIds);
+
+                log.info("Updates found and sent for link: {} | title: {}", link.getUrl(), updateInfo.linkTitle());
             } catch (Exception e) {
                 log.error("Error checking link: {}", link.getUrl(), e);
                 messageSender.sendError(link, e.getMessage(), chatIds);
