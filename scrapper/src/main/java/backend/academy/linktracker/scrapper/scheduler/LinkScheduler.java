@@ -7,7 +7,7 @@ import backend.academy.linktracker.scrapper.service.LinkUpdateService;
 import backend.academy.linktracker.scrapper.service.MessageSender;
 import backend.academy.linktracker.scrapper.service.UpdateInfo;
 import java.util.List;
-import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
@@ -28,16 +28,16 @@ public class LinkScheduler {
 
     @Scheduled(fixedDelayString = "${app.scheduler.interval}")
     public void checkUpdates() {
-        log.info("Starting link updates check (batch size: {})", schedulerProperties.getBatchSize());
+        log.debug("Starting link updates check (batch size: {})", schedulerProperties.getBatchSize());
 
         List<LinkWithChats> linksToCheck = linkRepository.findLinksToCheck(schedulerProperties.getBatchSize());
 
         if (linksToCheck.isEmpty()) {
-            log.info("No links to check");
+            log.debug("No links to check");
             return;
         }
 
-        log.info("Checking {} links", linksToCheck.size());
+        AtomicInteger updatedCount = new AtomicInteger(0);
 
         linksToCheck.forEach(linkWithChats -> {
             var link = linkWithChats.link();
@@ -47,20 +47,18 @@ public class LinkScheduler {
             MDC.put("linkId", String.valueOf(link.getId()));
 
             try {
-                Optional<UpdateInfo> updateOpt = linkUpdateService.checkUpdate(link);
+                UpdateInfo updateInfo = linkUpdateService.checkUpdate(link).orElse(null);
 
-                if (updateOpt.isEmpty()) {
+                if (updateInfo == null) {
                     log.debug("No updates for link: {}", link.getUrl());
                     return;
                 }
-
-                UpdateInfo updateInfo = updateOpt.orElseThrow(() -> new RuntimeException("UpdateInfo is null"));
-
                 linkRepository.updateLastCheckedAt(link.getId(), link.getLastCheckedAt());
-
                 messageSender.sendUpdate(link, updateInfo, chatIds);
+                updatedCount.incrementAndGet();
 
                 log.info("Updates found and sent for link: {} | title: {}", link.getUrl(), updateInfo.linkTitle());
+
             } catch (Exception e) {
                 log.error("Error checking link: {}", link.getUrl(), e);
                 messageSender.sendError(link, e.getMessage(), chatIds);
@@ -69,6 +67,6 @@ public class LinkScheduler {
             }
         });
 
-        log.info("Link updates check completed");
+        log.info("Link updates check completed. Checked: {}, Updated: {}", linksToCheck.size(), updatedCount.get());
     }
 }

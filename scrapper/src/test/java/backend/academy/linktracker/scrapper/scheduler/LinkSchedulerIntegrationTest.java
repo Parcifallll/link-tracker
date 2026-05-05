@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -23,6 +22,7 @@ import backend.academy.linktracker.scrapper.service.UpdateType;
 import java.net.URI;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -198,9 +198,12 @@ class LinkSchedulerIntegrationTest {
 
     @Test
     void tenLinks_batchSizeFive_allRecordsUpdatedInTwoRuns() {
+        List<URI> urls = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
             URI url = URI.create("https://github.com/user/repo" + i);
+            urls.add(url);
             linkRepository.save(CHAT_ID, new Link(0, url, List.of(), List.of()));
+
             jdbcTemplate.update(
                     "UPDATE links SET last_checked_at = ? WHERE url = ?",
                     Timestamp.from(Instant.EPOCH.plusSeconds(i)),
@@ -209,18 +212,32 @@ class LinkSchedulerIntegrationTest {
 
         schedulerProperties.setBatchSize(5);
 
-        doAnswer(inv -> {
-                    Link link = inv.getArgument(0);
-                    link.setLastCheckedAt(Instant.now());
-                    return Optional.of(FAKE_UPDATE);
-                })
-                .when(linkUpdateService)
-                .checkUpdate(any(Link.class));
+        when(linkUpdateService.checkUpdate(any(Link.class))).thenAnswer(inv -> {
+            Link link = inv.getArgument(0);
+            link.setLastCheckedAt(Instant.now());
+            return Optional.of(FAKE_UPDATE);
+        });
 
         scheduler.checkUpdates();
         verify(messageSender, times(5)).sendUpdate(any(), any(), any());
 
         scheduler.checkUpdates();
         verify(messageSender, times(10)).sendUpdate(any(), any(), any());
+
+        List<Map<String, Object>> rows =
+                jdbcTemplate.queryForList("SELECT url, last_checked_at FROM links ORDER BY last_checked_at DESC");
+
+        assertThat(rows).hasSize(10);
+
+        Instant threshold = Instant.now().minusSeconds(10);
+
+        long recentlyCheckedCount = rows.stream()
+                .filter(row ->
+                        ((Timestamp) row.get("last_checked_at")).toInstant().isAfter(threshold))
+                .count();
+
+        assertThat(recentlyCheckedCount)
+                .as("All 10 links should have been checked in two runs")
+                .isEqualTo(10);
     }
 }

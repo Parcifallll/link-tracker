@@ -100,20 +100,21 @@ public class OrmLinkRepository implements LinkRepository {
         });
 
         return linkEntities.stream()
-                .map(entity -> new LinkWithChats(
-                        toLink(entity, new String[0], new String[0]),
-                        chatIdsByLinkId.getOrDefault(entity.getId(), List.of())))
+                .map(entity ->
+                        new LinkWithChats(toLink(entity), chatIdsByLinkId.getOrDefault(entity.getId(), List.of())))
                 .toList();
     }
 
     private Link toLink(LinkEntity entity, String[] tags, String[] filters) {
-        Link link = new Link(
+        return new Link(
                 entity.getId(),
                 URI.create(entity.getUrl()),
                 tags == null ? List.of() : Arrays.asList(tags),
                 filters == null ? List.of() : Arrays.asList(filters));
-        link.setLastCheckedAt(entity.getLastCheckedAt());
-        return link;
+    }
+
+    private Link toLink(LinkEntity entity) {
+        return toLink(entity, null, null);
     }
 
     private String[] toArray(List<String> list) {
