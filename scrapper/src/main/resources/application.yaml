@@ -41,6 +41,7 @@ app:
 
   scheduler:
     interval: 60s # polling
+    batch-size: 100
 
 logging:
   structured:

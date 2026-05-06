@@ -1,4 +1,4 @@
-package backend.academy.linktracker.scrapper.repository.orm; // Test that ORM access type uses ORM implementation
+package backend.academy.linktracker.scrapper.repository.orm;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 

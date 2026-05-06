@@ -3,7 +3,7 @@ package backend.academy.linktracker.scrapper.repository.orm;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import backend.academy.linktracker.scrapper.AbstractIntegrationTest;
-import backend.academy.linktracker.scrapper.TestcontainersConfiguration;
+import backend.academy.linktracker.scrapper.dto.link.LinkWithChats;
 import backend.academy.linktracker.scrapper.model.Chat;
 import backend.academy.linktracker.scrapper.model.Link;
 import java.net.URI;
@@ -13,15 +13,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-@SpringBootTest(properties = "app.database.access-type=ORM")
+@SpringBootTest
 @Testcontainers
 @ActiveProfiles("test")
-@Import(TestcontainersConfiguration.class)
 class OrmRepositoryTest extends AbstractIntegrationTest {
     @Autowired
     OrmChatRepository chatRepository;
@@ -91,5 +89,24 @@ class OrmRepositoryTest extends AbstractIntegrationTest {
         assertThat(chatsCount).isEqualTo(1);
         assertThat(linksCount).isEqualTo(1);
         assertThat(subsCount).isEqualTo(1);
+    }
+
+    @Test
+    void findLinksToCheck_respectsLimit() {
+        for (int i = 0; i < 5; i++) {
+            URI url = URI.create("https://github.com/user/repo" + i);
+            linkRepository.save(CHAT_ID, new Link(0, url, List.of(), List.of()));
+        }
+
+        List<LinkWithChats> result = linkRepository.findLinksToCheck(3);
+
+        assertThat(result).hasSize(3);
+    }
+
+    @Test
+    void findLinksToCheck_emptyWhenNoLinks() {
+        List<LinkWithChats> result = linkRepository.findLinksToCheck(10);
+
+        assertThat(result).isEmpty();
     }
 }

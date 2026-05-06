@@ -1,4 +1,4 @@
-package backend.academy.linktracker.scrapper.repository.orm.entity;
+package backend.academy.linktracker.scrapper.repository.entity;
 
 import backend.academy.linktracker.scrapper.model.Chat;
 import jakarta.persistence.Column;

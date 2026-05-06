@@ -1,5 +1,6 @@
 package backend.academy.linktracker.scrapper.repository.sql;
 
+import backend.academy.linktracker.scrapper.dto.link.LinkWithChats;
 import backend.academy.linktracker.scrapper.model.Link;
 import backend.academy.linktracker.scrapper.repository.LinkRepository;
 import java.net.URI;
@@ -8,10 +9,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -80,21 +78,6 @@ public class SqlLinkRepository implements LinkRepository {
         return result.stream().findFirst();
     }
 
-    @Override
-    public Map<Long, List<Link>> findAllWithChatIds() {
-        Map<Long, List<Link>> result = new HashMap<>();
-        jdbcTemplate.query("""
-            SELECT s.chat_id, l.id, l.url, l.last_checked_at, s.tags, s.filters
-            FROM links l
-            JOIN subscriptions s ON l.id = s.link_id
-            """, rs -> {
-            long chatId = rs.getLong("chat_id");
-            Link link = mapLink(rs);
-            result.computeIfAbsent(chatId, id -> new ArrayList<>()).add(link);
-        });
-        return result;
-    }
-
     private Link mapLink(ResultSet rs) throws SQLException {
         long id = rs.getLong("id");
         URI url = URI.create(rs.getString("url"));
@@ -119,5 +102,11 @@ public class SqlLinkRepository implements LinkRepository {
     @Override
     public void updateLastCheckedAt(long linkId, Instant lastCheckedAt) {
         jdbcTemplate.update("UPDATE links SET last_checked_at = ? WHERE id = ?", Timestamp.from(lastCheckedAt), linkId);
+    }
+
+    @Override
+    public List<LinkWithChats> findLinksToCheck(int limit) {
+        // mock - no further support for sql implementation (not required)
+        return List.of();
     }
 }
