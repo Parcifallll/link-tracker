@@ -15,6 +15,12 @@ spring:
         scrapper:
           address: localhost:9091
 
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: bot-consumer-group
+      auto-offset-reset: earliest
+
 app:
   telegram:
     url: https://api.telegram.org/bot

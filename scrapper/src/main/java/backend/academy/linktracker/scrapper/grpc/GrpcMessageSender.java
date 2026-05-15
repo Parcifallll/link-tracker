@@ -9,11 +9,13 @@ import backend.academy.linktracker.scrapper.service.UpdateInfo;
 import io.grpc.ManagedChannel;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.grpc.client.GrpcChannelFactory;
 import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
+@ConditionalOnProperty(name = "app.notification.type", havingValue = "grpc")
 public class GrpcMessageSender implements MessageSender {
 
     private final BotUpdateServiceGrpc.BotUpdateServiceBlockingStub stub;

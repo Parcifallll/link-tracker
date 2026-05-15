@@ -34,5 +34,30 @@ services:
       timeout: 5s
       retries: 3
 
+  kafka-controller:
+    container_name: kafka-controller
+    image: confluentinc/cp-kafka:7.8.0
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://kafka-controller:29092,CONTROLLER://kafka-controller:29093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-controller:29092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka-controller:29093
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      CLUSTER_ID: MkQrdeSnT2ePEKGSRJvskQ
+    ports:
+      - "9092:29092"
+    healthcheck:
+      test: kafka-broker-api-versions --bootstrap-server localhost:29092
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
 volumes:
   postgres_data:
+

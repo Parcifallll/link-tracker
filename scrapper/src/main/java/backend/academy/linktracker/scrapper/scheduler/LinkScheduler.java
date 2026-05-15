@@ -6,6 +6,7 @@ import backend.academy.linktracker.scrapper.repository.LinkRepository;
 import backend.academy.linktracker.scrapper.service.LinkUpdateService;
 import backend.academy.linktracker.scrapper.service.MessageSender;
 import backend.academy.linktracker.scrapper.service.UpdateInfo;
+import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import lombok.RequiredArgsConstructor;
@@ -48,12 +49,14 @@ public class LinkScheduler {
 
             try {
                 UpdateInfo updateInfo = linkUpdateService.checkUpdate(link).orElse(null);
+                linkRepository.updateLastCheckedAt(link.getId(), Instant.now());
+
 
                 if (updateInfo == null) {
                     log.debug("No updates for link: {}", link.getUrl());
                     return;
                 }
-                linkRepository.updateLastCheckedAt(link.getId(), link.getLastCheckedAt());
+
                 messageSender.sendUpdate(link, updateInfo, chatIds);
                 updatedCount.incrementAndGet();
 
