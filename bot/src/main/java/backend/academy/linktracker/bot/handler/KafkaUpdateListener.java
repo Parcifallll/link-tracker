@@ -16,7 +16,9 @@ public class KafkaUpdateListener {
 
     private final TelegramBot bot;
 
-    @KafkaListener(topics = {"github-updates", "stackoverflow-updates"}, groupId = "bot-consumer-group")
+    @KafkaListener(
+            topics = {"github-updates", "stackoverflow-updates"},
+            groupId = "bot-consumer-group")
     public void handleUpdate(LinkUpdate update) {
         MDC.put("url", update.url().toString());
         try {

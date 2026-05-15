@@ -1,6 +1,7 @@
-package backend.academy.linktracker.scrapper.service;
+package backend.academy.linktracker.scrapper.service.senders;
 
 import backend.academy.linktracker.scrapper.model.Link;
+import backend.academy.linktracker.scrapper.service.updates.dto.UpdateInfo;
 import java.util.List;
 
 public interface MessageSender {

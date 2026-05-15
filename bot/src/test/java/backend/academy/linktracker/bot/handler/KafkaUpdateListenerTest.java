@@ -32,11 +32,7 @@ class KafkaUpdateListenerTest {
     void handleUpdate_withMultipleChatIds_sendMessageToEachChat() {
         // Arrange
         LinkUpdate update = new LinkUpdate(
-            1L,
-            URI.create("https://github.com/user/repo"),
-            "New Release",
-            List.of(123L, 456L, 789L)
-        );
+                1L, URI.create("https://github.com/user/repo"), "New Release", List.of(123L, 456L, 789L));
 
         // Act
         kafkaUpdateListener.handleUpdate(update);
@@ -48,12 +44,8 @@ class KafkaUpdateListenerTest {
     @Test
     void handleUpdate_withSingleChatId_sendMessageOnce() {
         // Arrange
-        LinkUpdate update = new LinkUpdate(
-            1L,
-            URI.create("https://github.com/user/repo"),
-            "New Release",
-            List.of(123L)
-        );
+        LinkUpdate update =
+                new LinkUpdate(1L, URI.create("https://github.com/user/repo"), "New Release", List.of(123L));
 
         // Act
         kafkaUpdateListener.handleUpdate(update);
@@ -65,12 +57,7 @@ class KafkaUpdateListenerTest {
     @Test
     void handleUpdate_withEmptyChatIds_noMessageSent() {
         // Arrange
-        LinkUpdate update = new LinkUpdate(
-            1L,
-            URI.create("https://github.com/user/repo"),
-            "New Release",
-            List.of()
-        );
+        LinkUpdate update = new LinkUpdate(1L, URI.create("https://github.com/user/repo"), "New Release", List.of());
 
         // Act
         kafkaUpdateListener.handleUpdate(update);
@@ -83,11 +70,7 @@ class KafkaUpdateListenerTest {
     void handleUpdate_withError_stillProcesses() {
         // Arrange
         LinkUpdate update = new LinkUpdate(
-            1L,
-            URI.create("https://github.com/user/repo"),
-            "Error: Connection timeout",
-            List.of(123L, 456L)
-        );
+                1L, URI.create("https://github.com/user/repo"), "Error: Connection timeout", List.of(123L, 456L));
 
         // Act
         kafkaUpdateListener.handleUpdate(update);

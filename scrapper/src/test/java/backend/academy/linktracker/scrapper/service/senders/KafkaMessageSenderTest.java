@@ -1,5 +1,6 @@
-package backend.academy.linktracker.scrapper.service;
+package backend.academy.linktracker.scrapper.service.senders;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -8,6 +9,7 @@ import static org.mockito.Mockito.when;
 import backend.academy.linktracker.scrapper.client.bot.dto.LinkUpdate;
 import backend.academy.linktracker.scrapper.model.Link;
 import backend.academy.linktracker.scrapper.properties.KafkaProperties;
+import backend.academy.linktracker.scrapper.service.updates.dto.UpdateInfo;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
@@ -35,18 +37,17 @@ class KafkaMessageSenderTest {
 
     @BeforeEach
     void setUp() {
+        when(kafkaProperties.getTopics()).thenReturn(topics);
+        when(topics.getFallback()).thenReturn("unknown-updates");
         kafkaMessageSender = new KafkaMessageSender(kafkaTemplate, kafkaProperties);
     }
 
     @Test
-    void testSendUpdateForGithubLink() {
+    void sendUpdate_githubLink_sendsToGithubTopic() {
         // Arrange
         Link link = createLink("https://github.com/user/repo", 1L);
         List<Long> chatIds = List.of(123L, 456L);
         UpdateInfo updateInfo = new UpdateInfo("New Release", Map.of());
-
-        when(kafkaProperties.getTopics()).thenReturn(topics);
-        when(topics.getGithubUpdates()).thenReturn("github-updates");
 
         // Act
         kafkaMessageSender.sendUpdate(link, updateInfo, chatIds);
@@ -55,22 +56,19 @@ class KafkaMessageSenderTest {
         ArgumentCaptor<LinkUpdate> captor = ArgumentCaptor.forClass(LinkUpdate.class);
         verify(kafkaTemplate).send(eq("github-updates"), anyString(), captor.capture());
 
-        LinkUpdate sentUpdate = captor.getValue();
-        assert sentUpdate.id() == 1L;
-        assert sentUpdate.url().equals(URI.create("https://github.com/user/repo"));
-        assert sentUpdate.description().equals("New Release");
-        assert sentUpdate.tgChatIds().equals(chatIds);
+        LinkUpdate sent = captor.getValue();
+        assertThat(sent.id()).isEqualTo(1L);
+        assertThat(sent.url()).isEqualTo(URI.create("https://github.com/user/repo"));
+        assertThat(sent.description()).isEqualTo("New Release");
+        assertThat(sent.tgChatIds()).isEqualTo(chatIds);
     }
 
     @Test
-    void testSendUpdateForStackOverflowLink() {
+    void sendUpdate_stackoverflowLink_sendsToStackoverflowTopic() {
         // Arrange
         Link link = createLink("https://stackoverflow.com/questions/123", 2L);
         List<Long> chatIds = List.of(789L);
         UpdateInfo updateInfo = new UpdateInfo("New Answer", Map.of());
-
-        when(kafkaProperties.getTopics()).thenReturn(topics);
-        when(topics.getStackoverflowUpdates()).thenReturn("stackoverflow-updates");
 
         // Act
         kafkaMessageSender.sendUpdate(link, updateInfo, chatIds);
@@ -79,20 +77,19 @@ class KafkaMessageSenderTest {
         ArgumentCaptor<LinkUpdate> captor = ArgumentCaptor.forClass(LinkUpdate.class);
         verify(kafkaTemplate).send(eq("stackoverflow-updates"), anyString(), captor.capture());
 
-        LinkUpdate sentUpdate = captor.getValue();
-        assert sentUpdate.id() == 2L;
-        assert sentUpdate.url().equals(URI.create("https://stackoverflow.com/questions/123"));
+        LinkUpdate sent = captor.getValue();
+        assertThat(sent.id()).isEqualTo(2L);
+        assertThat(sent.url()).isEqualTo(URI.create("https://stackoverflow.com/questions/123"));
+        assertThat(sent.description()).isEqualTo("New Answer");
+        assertThat(sent.tgChatIds()).isEqualTo(chatIds);
     }
 
     @Test
-    void testSendErrorForGithubLink() {
+    void sendError_githubLink_sendsErrorDescriptionToGithubTopic() {
         // Arrange
         Link link = createLink("https://github.com/user/repo", 1L);
         List<Long> chatIds = List.of(123L);
         String errorMessage = "Connection timeout";
-
-        when(kafkaProperties.getTopics()).thenReturn(topics);
-        when(topics.getGithubUpdates()).thenReturn("github-updates");
 
         // Act
         kafkaMessageSender.sendError(link, errorMessage, chatIds);
@@ -101,20 +98,17 @@ class KafkaMessageSenderTest {
         ArgumentCaptor<LinkUpdate> captor = ArgumentCaptor.forClass(LinkUpdate.class);
         verify(kafkaTemplate).send(eq("github-updates"), anyString(), captor.capture());
 
-        LinkUpdate sentUpdate = captor.getValue();
-        assert sentUpdate.description().contains("Error");
-        assert sentUpdate.description().contains("Connection timeout");
+        LinkUpdate sent = captor.getValue();
+        assertThat(sent.description()).contains("Error").contains("Connection timeout");
+        assertThat(sent.tgChatIds()).isEqualTo(chatIds);
     }
 
     @Test
-    void testSendUpdateUseFallbackTopicForUnknownSource() {
+    void sendUpdate_unknownLink_sendsToFallbackTopic() {
         // Arrange
-        Link link = createLink("https://unknown.com/page", 1L);
+        Link link = createLink("https://unknown.com/page", 3L);
         List<Long> chatIds = List.of(123L);
         UpdateInfo updateInfo = new UpdateInfo("Update", Map.of());
-
-        when(kafkaProperties.getTopics()).thenReturn(topics);
-        when(topics.getFallback()).thenReturn("unknown-updates");
 
         // Act
         kafkaMessageSender.sendUpdate(link, updateInfo, chatIds);
@@ -123,13 +117,13 @@ class KafkaMessageSenderTest {
         ArgumentCaptor<LinkUpdate> captor = ArgumentCaptor.forClass(LinkUpdate.class);
         verify(kafkaTemplate).send(eq("unknown-updates"), anyString(), captor.capture());
 
-        LinkUpdate sentUpdate = captor.getValue();
-        assert sentUpdate.id() == 1L;
-        assert sentUpdate.url().equals(URI.create("https://unknown.com/page"));
+        LinkUpdate sent = captor.getValue();
+        assertThat(sent.id()).isEqualTo(3L);
+        assertThat(sent.url()).isEqualTo(URI.create("https://unknown.com/page"));
+        assertThat(sent.tgChatIds()).isEqualTo(chatIds);
     }
 
     private Link createLink(String url, Long id) {
         return new Link(id, URI.create(url), List.of(), List.of());
     }
 }
-

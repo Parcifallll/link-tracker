@@ -1,7 +1,7 @@
-package backend.academy.linktracker.scrapper.service;
+package backend.academy.linktracker.scrapper.service.updates.dto;
 
-import lombok.Getter;
 import java.util.Arrays;
+import lombok.Getter;
 
 @Getter
 public enum LinkSourceType {
@@ -18,10 +18,9 @@ public enum LinkSourceType {
 
     public static String getTopic(String url, String fallbackTopic) {
         return Arrays.stream(values())
-            .filter(type -> url.contains(type.host))
-            .map(type -> type.topic)
-            .findFirst()
-            .orElse(fallbackTopic);
+                .filter(type -> url.contains(type.host))
+                .map(type -> type.topic)
+                .findFirst()
+                .orElse(fallbackTopic);
     }
-
 }

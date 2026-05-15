@@ -6,8 +6,9 @@ import static org.mockito.Mockito.when;
 
 import backend.academy.linktracker.grpc.BotUpdateServiceGrpc;
 import backend.academy.linktracker.grpc.SendUpdateRequest;
-import backend.academy.linktracker.scrapper.grpc.GrpcMessageSender;
 import backend.academy.linktracker.scrapper.model.Link;
+import backend.academy.linktracker.scrapper.service.senders.GrpcMessageSender;
+import backend.academy.linktracker.scrapper.service.updates.dto.UpdateInfo;
 import io.grpc.ManagedChannel;
 import java.net.URI;
 import java.util.List;
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.grpc.client.GrpcChannelFactory;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class GrpcMessageSenderTest {
@@ -37,6 +39,7 @@ class GrpcMessageSenderTest {
     void setUp() {
         when(channelFactory.createChannel("bot")).thenReturn(managedChannel);
         grpcMessageSender = new GrpcMessageSender(channelFactory);
+        ReflectionTestUtils.setField(grpcMessageSender, "stub", stub);
     }
 
     @Test

@@ -3,10 +3,9 @@ package backend.academy.linktracker.scrapper.scheduler;
 import backend.academy.linktracker.scrapper.dto.link.LinkWithChats;
 import backend.academy.linktracker.scrapper.properties.SchedulerProperties;
 import backend.academy.linktracker.scrapper.repository.LinkRepository;
-import backend.academy.linktracker.scrapper.service.LinkUpdateService;
-import backend.academy.linktracker.scrapper.service.MessageSender;
-import backend.academy.linktracker.scrapper.service.UpdateInfo;
-import java.time.Instant;
+import backend.academy.linktracker.scrapper.service.senders.MessageSender;
+import backend.academy.linktracker.scrapper.service.updates.LinkUpdateService;
+import backend.academy.linktracker.scrapper.service.updates.dto.UpdateInfo;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import lombok.RequiredArgsConstructor;
@@ -49,8 +48,7 @@ public class LinkScheduler {
 
             try {
                 UpdateInfo updateInfo = linkUpdateService.checkUpdate(link).orElse(null);
-                linkRepository.updateLastCheckedAt(link.getId(), Instant.now());
-
+                linkRepository.updateLastCheckedAt(link.getId(), link.getLastCheckedAt());
 
                 if (updateInfo == null) {
                     log.debug("No updates for link: {}", link.getUrl());

@@ -1,8 +1,10 @@
-package backend.academy.linktracker.scrapper.service;
+package backend.academy.linktracker.scrapper.service.senders;
 
 import backend.academy.linktracker.scrapper.client.bot.dto.LinkUpdate;
 import backend.academy.linktracker.scrapper.model.Link;
 import backend.academy.linktracker.scrapper.properties.KafkaProperties;
+import backend.academy.linktracker.scrapper.service.updates.dto.LinkSourceType;
+import backend.academy.linktracker.scrapper.service.updates.dto.UpdateInfo;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,33 +23,29 @@ public class KafkaMessageSender implements MessageSender {
 
     @Override
     public void sendUpdate(Link link, UpdateInfo updateInfo, List<Long> chatIds) {
-        LinkUpdate update = new LinkUpdate(
-            link.getId(),
-            link.getUrl(),
-            updateInfo.linkTitle(),
-            chatIds
-        );
+        LinkUpdate update = new LinkUpdate(link.getId(), link.getUrl(), updateInfo.linkTitle(), chatIds);
 
         String topic = determineTopic(link.getUrl().toString());
         kafkaTemplate.send(topic, String.valueOf(link.getId()), update);
-        log.atDebug().addKeyValue("topic", topic).addKeyValue("linkId", link.getId()).log("Sent update to Kafka");
+        log.atDebug()
+                .addKeyValue("topic", topic)
+                .addKeyValue("linkId", link.getId())
+                .log("Sent update to Kafka");
     }
 
     @Override
     public void sendError(Link link, String errorMessage, List<Long> chatIds) {
-        LinkUpdate update = new LinkUpdate(
-            link.getId(),
-            link.getUrl(),
-            "Error: " + errorMessage,
-            chatIds
-        );
+        LinkUpdate update = new LinkUpdate(link.getId(), link.getUrl(), "Error: " + errorMessage, chatIds);
 
         String topic = determineTopic(link.getUrl().toString());
         kafkaTemplate.send(topic, String.valueOf(link.getId()), update);
-        log.atError().addKeyValue("topic", topic).addKeyValue("linkId", link.getId()).log("Sent error to Kafka");
+        log.atWarn()
+                .addKeyValue("topic", topic)
+                .addKeyValue("linkId", link.getId())
+                .log("Sent error notification to Kafka");
     }
+
     private String determineTopic(String url) {
         return LinkSourceType.getTopic(url, kafkaProperties.getTopics().getFallback());
     }
 }
-

@@ -12,17 +12,14 @@ public class KafkaConfiguration {
 
     @Bean
     public NewTopic githubUpdatesTopic() {
-        return TopicBuilder.name("github-updates")
-            .partitions(3)
-            .replicas(1)
-            .build();
+        return TopicBuilder.name("github-updates").partitions(3).replicas(1).build();
     }
 
     @Bean
     public NewTopic stackoverflowUpdatesTopic() {
         return TopicBuilder.name("stackoverflow-updates")
-            .partitions(3)
-            .replicas(1)
-            .build();
+                .partitions(3)
+                .replicas(1)
+                .build();
     }
 }

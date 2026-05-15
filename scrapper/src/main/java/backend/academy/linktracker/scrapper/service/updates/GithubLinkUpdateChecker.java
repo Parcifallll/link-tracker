@@ -1,9 +1,11 @@
-package backend.academy.linktracker.scrapper.service;
+package backend.academy.linktracker.scrapper.service.updates;
 
 import backend.academy.linktracker.scrapper.client.github.GithubClient;
 import backend.academy.linktracker.scrapper.client.github.dto.GithubIssue;
 import backend.academy.linktracker.scrapper.client.github.dto.GithubPullRequest;
 import backend.academy.linktracker.scrapper.model.Link;
+import backend.academy.linktracker.scrapper.service.updates.dto.UpdateInfo;
+import backend.academy.linktracker.scrapper.service.updates.dto.UpdateType;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;

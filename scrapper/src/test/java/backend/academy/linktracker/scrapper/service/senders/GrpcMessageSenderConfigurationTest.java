@@ -1,11 +1,9 @@
-package backend.academy.linktracker.scrapper.configuration;
+package backend.academy.linktracker.scrapper.service.senders;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import backend.academy.linktracker.scrapper.AbstractIntegrationTest;
 import backend.academy.linktracker.scrapper.TestcontainersConfiguration;
-import backend.academy.linktracker.scrapper.grpc.GrpcMessageSender;
-import backend.academy.linktracker.scrapper.service.MessageSender;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -23,7 +21,6 @@ class GrpcMessageSenderConfigurationTest extends AbstractIntegrationTest {
 
     @Test
     void grpcNotificationType_usesGrpcMessageSender() {
-        assertThat(context.getBean(MessageSender.class))
-            .isInstanceOf(GrpcMessageSender.class);
+        assertThat(context.getBean(MessageSender.class)).isInstanceOf(GrpcMessageSender.class);
     }
 }

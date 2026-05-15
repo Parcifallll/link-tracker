@@ -56,10 +56,17 @@ app:
     url: http://localhost:8080
 
   scheduler:
-    interval: 60s # polling
+    interval: 30s # polling
     batch-size: 100
 
 logging:
   structured:
     format:
       console: ecs
+  level:
+    root: WARN
+    backend.academy.linktracker: WARN
+    org.springframework.kafka: WARN
+    org.apache.kafka: WARN
+    org.testcontainers: WARN
+    org.apache.kafka.common.metrics: WARN
