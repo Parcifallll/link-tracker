@@ -13,6 +13,10 @@
 
     <dependencies>
         <dependency>
+            <groupId>io.github.cdimascio</groupId>
+            <artifactId>java-dotenv</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webmvc</artifactId>
         </dependency>
@@ -84,14 +88,36 @@
         <!-- </dependency> -->
 
         <!-- gRPC: -->
-        <!-- <dependency>-->
-        <!--     <groupId>org.springframework.grpc</groupId> -->
-        <!--     <artifactId>spring-grpc-spring-boot-starter</artifactId> -->
-        <!-- </dependency> -->
-        <!-- <dependency> -->
-        <!--     <groupId>io.grpc</groupId> -->
-        <!--     <artifactId>grpc-services</artifactId> -->
-        <!-- </dependency> -->
+        <dependency>
+            <groupId>org.springframework.grpc</groupId>
+            <artifactId>spring-grpc-spring-boot-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-services</artifactId>
+        </dependency>
+
+        <!-- Database: -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jdbc</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <!-- or: spring-boot-starter-flyway -->
+            <artifactId>spring-boot-starter-liquibase</artifactId>
+        </dependency>
 
         <!-- GraphQL: -->
         <!-- <dependency> -->
@@ -106,10 +132,10 @@
         <!-- </dependency> -->
 
         <!-- Kafka: -->
-        <!-- <dependency>-->
-        <!--     <groupId>org.springframework.boot</groupId> -->
-        <!--     <artifactId>spring-boot-starter-kafka</artifactId> -->
-        <!-- </dependency> -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-kafka</artifactId>
+        </dependency>
 
         <!-- Opentelemetry support: -->
         <!-- <dependency> -->
@@ -168,6 +194,12 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>5.20.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>net.datafaker</groupId>
             <artifactId>datafaker</artifactId>
             <scope>test</scope>
@@ -191,18 +223,27 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-pmd-plugin</artifactId>
+                <configuration>
+                    <excludeRoots>
+                        <excludeRoot>target/generated-sources/protobuf</excludeRoot>
+                    </excludeRoots>
+                </configuration>
+            </plugin>
             <!-- .proto gRPC compilation: -->
-            <!-- <plugin> -->
-            <!--     <groupId>io.github.ascopes</groupId> -->
-            <!--     <artifactId>protobuf-maven-plugin</artifactId> -->
-            <!--     <executions> -->
-            <!--         <execution> -->
-            <!--             <goals> -->
-            <!--                 <goal>generate</goal> -->
-            <!--             </goals> -->
-            <!--         </execution> -->
-            <!--     </executions> -->
-            <!-- </plugin> -->
+            <plugin>
+                <groupId>io.github.ascopes</groupId>
+                <artifactId>protobuf-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <!-- To build OCI image: https://docs.spring.io/spring-boot/maven-plugin/build-image.html -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>

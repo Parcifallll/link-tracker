@@ -4,10 +4,69 @@ server:
 spring:
   application:
     name: scrapper
+  grpc:
+    client:
+      channels:
+        bot:
+          address: localhost:9090
+    server:
+      port: 9091
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/${POSTGRES_DB}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+
+  liquibase:
+    change-log: file:migrations/db.changelog-master.xml
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+
 
 app:
+  database:
+    access-type: ORM
+  kafka:
+    topics:
+      github-updates: github-updates
+      stackoverflow-updates: stackoverflow-updates
+      fallback: unknown-updates
+
+  notification:
+    type: kafka # {kafka, grpc}
+
   stackoverflow:
-    key: ${STACKOVERFLOW_KEY} # Use env variable. DO NOT KEEP TOKEN HERE
-    access-token: ${STACKOVERFLOW_ACCESS_KEY} # Use env variable. DO NOT KEEP TOKEN HERE
+    key: ${STACKOVERFLOW_KEY}
+    access-token: ${STACKOVERFLOW_ACCESS_KEY}
+
   github:
-    token: ${GITHUB_TOKEN} # Use env variable. DO NOT KEEP TOKEN HERE
+    token: ${GITHUB_TOKEN}
+
+  bot:
+    url: http://localhost:8080
+
+  scheduler:
+    interval: 30s # polling
+    batch-size: 100
+
+logging:
+  structured:
+    format:
+      console: ecs
+  level:
+    root: WARN
+    backend.academy.linktracker: WARN
+    org.springframework.kafka: WARN
+    org.apache.kafka: WARN
+    org.testcontainers: WARN
+    org.apache.kafka.common.metrics: WARN

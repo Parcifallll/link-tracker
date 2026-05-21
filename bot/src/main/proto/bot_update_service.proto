@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+option java_package = "backend.academy.linktracker.grpc";
+option java_multiple_files = true;
+
+package linktracker;
+
+service BotUpdateService {
+    rpc SendUpdate (SendUpdateRequest) returns (SendUpdateResponse);
+}
+
+message SendUpdateRequest {
+    int64 id = 1;
+    string url = 2;
+    string title = 3; // repo or answer title
+    repeated UpdateItem updates = 4;
+    string error = 5;
+    repeated int64 tg_chat_ids = 6;
+}
+
+message UpdateItem {
+    string type = 1; // issue, PR; answer, comment
+    string title = 2;
+    string author = 3;
+    string created_at = 4;
+    string preview = 5;
+}
+
+message SendUpdateResponse {
+    bool success = 1;
+}
