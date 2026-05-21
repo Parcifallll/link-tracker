@@ -106,11 +106,17 @@ public class OrmLinkRepository implements LinkRepository {
     }
 
     private Link toLink(LinkEntity entity, String[] tags, String[] filters) {
-        return new Link(
+        Link link = new Link(
                 entity.getId(),
                 URI.create(entity.getUrl()),
                 tags == null ? List.of() : Arrays.asList(tags),
                 filters == null ? List.of() : Arrays.asList(filters));
+
+        if (entity.getLastCheckedAt() != null) {
+            link.setLastCheckedAt(entity.getLastCheckedAt());
+        }
+
+        return link;
     }
 
     private Link toLink(LinkEntity entity) {

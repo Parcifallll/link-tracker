@@ -15,6 +15,15 @@ spring:
         scrapper:
           address: localhost:9091
 
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: bot-consumer-group
+      auto-offset-reset: earliest
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.value.default.type: backend.academy.linktracker.bot.dto.LinkUpdate
+
 app:
   telegram:
     url: https://api.telegram.org/bot
@@ -26,3 +35,10 @@ logging:
   structured:
     format:
       console: ecs
+  level:
+    root: WARN
+    backend.academy.linktracker: WARN
+    org.springframework.kafka: WARN
+    org.apache.kafka: WARN
+    org.testcontainers: WARN
+    org.apache.kafka.common.metrics: WARN

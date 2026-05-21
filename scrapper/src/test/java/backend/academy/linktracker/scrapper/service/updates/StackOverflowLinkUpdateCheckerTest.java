@@ -1,4 +1,4 @@
-package backend.academy.linktracker.scrapper.service;
+package backend.academy.linktracker.scrapper.service.updates;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -14,6 +14,8 @@ import backend.academy.linktracker.scrapper.client.stackoverflow.dto.StackOverfl
 import backend.academy.linktracker.scrapper.client.stackoverflow.dto.StackOverflowResponse;
 import backend.academy.linktracker.scrapper.model.Link;
 import backend.academy.linktracker.scrapper.properties.StackoverflowProperties;
+import backend.academy.linktracker.scrapper.service.updates.dto.UpdateInfo;
+import backend.academy.linktracker.scrapper.service.updates.dto.UpdateType;
 import java.net.URI;
 import java.time.Instant;
 import java.util.List;

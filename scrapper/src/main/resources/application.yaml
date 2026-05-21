@@ -25,9 +25,25 @@ spring:
       ddl-auto: validate
     open-in-view: false
 
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+
+
 app:
   database:
     access-type: ORM
+  kafka:
+    topics:
+      github-updates: github-updates
+      stackoverflow-updates: stackoverflow-updates
+      fallback: unknown-updates
+
+  notification:
+    type: kafka # {kafka, grpc}
 
   stackoverflow:
     key: ${STACKOVERFLOW_KEY}
@@ -40,10 +56,17 @@ app:
     url: http://localhost:8080
 
   scheduler:
-    interval: 60s # polling
+    interval: 30s # polling
     batch-size: 100
 
 logging:
   structured:
     format:
       console: ecs
+  level:
+    root: WARN
+    backend.academy.linktracker: WARN
+    org.springframework.kafka: WARN
+    org.apache.kafka: WARN
+    org.testcontainers: WARN
+    org.apache.kafka.common.metrics: WARN

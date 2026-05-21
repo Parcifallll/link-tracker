@@ -1,4 +1,4 @@
-package backend.academy.linktracker.scrapper.service;
+package backend.academy.linktracker.scrapper.service.updates.dto;
 
 public enum UpdateType {
     GITHUB_ISSUE,

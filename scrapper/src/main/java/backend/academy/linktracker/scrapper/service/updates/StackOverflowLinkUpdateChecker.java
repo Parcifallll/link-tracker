@@ -1,4 +1,4 @@
-package backend.academy.linktracker.scrapper.service;
+package backend.academy.linktracker.scrapper.service.updates;
 
 import backend.academy.linktracker.scrapper.client.stackoverflow.StackOverflowClient;
 import backend.academy.linktracker.scrapper.client.stackoverflow.dto.StackOverflowAnswersResponse;
@@ -6,6 +6,8 @@ import backend.academy.linktracker.scrapper.client.stackoverflow.dto.StackOverfl
 import backend.academy.linktracker.scrapper.client.stackoverflow.dto.StackOverflowResponse;
 import backend.academy.linktracker.scrapper.model.Link;
 import backend.academy.linktracker.scrapper.properties.StackoverflowProperties;
+import backend.academy.linktracker.scrapper.service.updates.dto.UpdateInfo;
+import backend.academy.linktracker.scrapper.service.updates.dto.UpdateType;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;

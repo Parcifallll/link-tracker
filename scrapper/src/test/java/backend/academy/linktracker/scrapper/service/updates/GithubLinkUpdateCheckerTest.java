@@ -1,4 +1,4 @@
-package backend.academy.linktracker.scrapper.service;
+package backend.academy.linktracker.scrapper.service.updates;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -12,6 +12,8 @@ import backend.academy.linktracker.scrapper.client.github.dto.GithubIssue;
 import backend.academy.linktracker.scrapper.client.github.dto.GithubPullRequest;
 import backend.academy.linktracker.scrapper.client.github.dto.GithubUser;
 import backend.academy.linktracker.scrapper.model.Link;
+import backend.academy.linktracker.scrapper.service.updates.dto.UpdateInfo;
+import backend.academy.linktracker.scrapper.service.updates.dto.UpdateType;
 import java.net.URI;
 import java.time.Instant;
 import java.util.List;

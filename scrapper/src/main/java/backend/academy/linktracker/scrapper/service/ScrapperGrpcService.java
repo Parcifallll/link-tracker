@@ -1,4 +1,4 @@
-package backend.academy.linktracker.scrapper.grpc;
+package backend.academy.linktracker.scrapper.service;
 
 import backend.academy.linktracker.grpc.DeleteChatRequest;
 import backend.academy.linktracker.grpc.DeleteChatResponse;
@@ -17,8 +17,6 @@ import backend.academy.linktracker.scrapper.exception.ChatNotFoundException;
 import backend.academy.linktracker.scrapper.exception.LinkAlreadyExistsException;
 import backend.academy.linktracker.scrapper.exception.LinkNotFoundException;
 import backend.academy.linktracker.scrapper.model.Link;
-import backend.academy.linktracker.scrapper.service.ChatService;
-import backend.academy.linktracker.scrapper.service.LinkService;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import java.net.URI;
