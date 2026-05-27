@@ -32,6 +32,11 @@ spring:
       properties:
         spring.json.add.type.headers: false
 
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
 
 app:
   database:
@@ -44,6 +49,9 @@ app:
 
   notification:
     type: kafka # {kafka, grpc}
+
+  cache:
+    ttl: 10m
 
   stackoverflow:
     key: ${STACKOVERFLOW_KEY}
