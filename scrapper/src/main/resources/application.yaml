@@ -37,7 +37,6 @@ spring:
       host: localhost
       port: 6379
 
-
 app:
   database:
     access-type: ORM
@@ -47,6 +46,7 @@ app:
       stackoverflow-updates: stackoverflow-updates
       fallback: unknown-updates
 
+  # not used, managed by resilience
   notification:
     type: kafka # {kafka, grpc}
 
@@ -64,8 +64,30 @@ app:
     url: http://localhost:8080
 
   scheduler:
-    interval: 30s # polling
+    interval: 30s
     batch-size: 100
+
+  resilience:
+    timeout:
+      connect: 3s
+      read: 5s
+
+    retry:
+      max-attempts: 3
+      wait-duration: 1s
+      retryable-statuses: [ 500, 502, 503, 504 ]
+
+    circuit-breaker:
+      sliding-window-size: 10
+      minimum-required-calls: 5
+      failure-rate-threshold: 50.0
+      permitted-calls-in-half-open-state: 5
+      wait-duration-in-open-state: 10s
+
+    rate-limiter:
+      limit-for-period: 50
+      limit-refresh-period: 1s
+      timeout-duration: 0s
 
 logging:
   structured:
