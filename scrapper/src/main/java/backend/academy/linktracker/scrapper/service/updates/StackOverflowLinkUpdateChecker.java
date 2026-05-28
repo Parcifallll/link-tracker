@@ -4,10 +4,13 @@ import backend.academy.linktracker.scrapper.client.stackoverflow.StackOverflowCl
 import backend.academy.linktracker.scrapper.client.stackoverflow.dto.StackOverflowAnswersResponse;
 import backend.academy.linktracker.scrapper.client.stackoverflow.dto.StackOverflowCommentsResponse;
 import backend.academy.linktracker.scrapper.client.stackoverflow.dto.StackOverflowResponse;
+import backend.academy.linktracker.scrapper.configuration.ResilienceConfiguration;
 import backend.academy.linktracker.scrapper.model.Link;
 import backend.academy.linktracker.scrapper.properties.StackoverflowProperties;
 import backend.academy.linktracker.scrapper.service.updates.dto.UpdateInfo;
 import backend.academy.linktracker.scrapper.service.updates.dto.UpdateType;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
@@ -34,6 +37,8 @@ public class StackOverflowLinkUpdateChecker implements LinkUpdateChecker {
     }
 
     @Override
+    @Retry(name = ResilienceConfiguration.STACKOVERFLOW)
+    @CircuitBreaker(name = ResilienceConfiguration.STACKOVERFLOW)
     public Optional<UpdateInfo> check(Link link) {
         try {
             String[] parts = link.getUrl().getPath().split("/");
@@ -97,12 +102,12 @@ public class StackOverflowLinkUpdateChecker implements LinkUpdateChecker {
     private String getQuestionTitle(long questionId) {
         try {
             return stackOverflowClient
-                    .getQuestion(questionId, "stackoverflow", stackoverflowProperties.getKey())
-                    .items()
-                    .stream()
-                    .findFirst()
-                    .map(StackOverflowResponse.QuestionItem::title)
-                    .orElse("Question #" + questionId);
+                .getQuestion(questionId, "stackoverflow", stackoverflowProperties.getKey())
+                .items()
+                .stream()
+                .findFirst()
+                .map(StackOverflowResponse.QuestionItem::title)
+                .orElse("Question #" + questionId);
         } catch (Exception e) {
             log.warn("Failed to get question title for id: {}", questionId, e);
             return "Question #" + questionId;

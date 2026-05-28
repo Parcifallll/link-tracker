@@ -3,9 +3,13 @@ package backend.academy.linktracker.scrapper.service.updates;
 import backend.academy.linktracker.scrapper.client.github.GithubClient;
 import backend.academy.linktracker.scrapper.client.github.dto.GithubIssue;
 import backend.academy.linktracker.scrapper.client.github.dto.GithubPullRequest;
+import backend.academy.linktracker.scrapper.configuration.ResilienceConfiguration;
 import backend.academy.linktracker.scrapper.model.Link;
 import backend.academy.linktracker.scrapper.service.updates.dto.UpdateInfo;
 import backend.academy.linktracker.scrapper.service.updates.dto.UpdateType;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+import io.github.resilience4j.retry.annotation.Retry;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -34,6 +38,9 @@ public class GithubLinkUpdateChecker implements LinkUpdateChecker {
     }
 
     @Override
+    @RateLimiter(name = ResilienceConfiguration.GITHUB)
+    @Retry(name = ResilienceConfiguration.GITHUB)
+    @CircuitBreaker(name = ResilienceConfiguration.GITHUB)
     public Optional<UpdateInfo> check(Link link) {
         try {
             String[] parts = link.getUrl().getPath().split("/");
