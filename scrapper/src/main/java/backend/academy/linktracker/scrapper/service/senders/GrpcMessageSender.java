@@ -44,12 +44,12 @@ public class GrpcMessageSender implements MessageSender {
     @Override
     public void sendError(Link link, String errorMessage, List<Long> chatIds) {
         SendUpdateRequest request = SendUpdateRequest.newBuilder()
-            .setId(link.getId())
-            .setUrl(link.getUrl().toString())
-            .setTitle("Error checking link")
-            .setError(errorMessage)
-            .addAllTgChatIds(chatIds)
-            .build();
+                .setId(link.getId())
+                .setUrl(link.getUrl().toString())
+                .setTitle("Error checking link")
+                .setError(errorMessage)
+                .addAllTgChatIds(chatIds)
+                .build();
 
         try {
             stub.sendUpdate(request);

@@ -102,12 +102,12 @@ public class StackOverflowLinkUpdateChecker implements LinkUpdateChecker {
     private String getQuestionTitle(long questionId) {
         try {
             return stackOverflowClient
-                .getQuestion(questionId, "stackoverflow", stackoverflowProperties.getKey())
-                .items()
-                .stream()
-                .findFirst()
-                .map(StackOverflowResponse.QuestionItem::title)
-                .orElse("Question #" + questionId);
+                    .getQuestion(questionId, "stackoverflow", stackoverflowProperties.getKey())
+                    .items()
+                    .stream()
+                    .findFirst()
+                    .map(StackOverflowResponse.QuestionItem::title)
+                    .orElse("Question #" + questionId);
         } catch (Exception e) {
             log.warn("Failed to get question title for id: {}", questionId, e);
             return "Question #" + questionId;

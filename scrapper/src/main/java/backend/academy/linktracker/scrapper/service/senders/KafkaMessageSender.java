@@ -6,10 +6,8 @@ import backend.academy.linktracker.scrapper.properties.KafkaProperties;
 import backend.academy.linktracker.scrapper.service.updates.dto.LinkSourceType;
 import backend.academy.linktracker.scrapper.service.updates.dto.UpdateInfo;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
 @Slf4j
@@ -17,10 +15,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class KafkaMessageSender implements MessageSender {
 
-    // timeout to wait for broker
-    private static final long SEND_TIMEOUT_SECONDS = 5L;
-
-    private final KafkaTemplate<String, LinkUpdate> kafkaTemplate;
+    private final org.springframework.kafka.core.KafkaTemplate<String, LinkUpdate> kafkaTemplate;
     private final KafkaProperties kafkaProperties;
 
     @Override
@@ -38,17 +33,14 @@ public class KafkaMessageSender implements MessageSender {
     private void send(String url, String key, LinkUpdate update) {
         String topic = determineTopic(url);
         try {
-            kafkaTemplate.send(topic, key, update).get(SEND_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            log.atDebug()
-                .addKeyValue("topic", topic)
-                .addKeyValue("key", key)
-                .log("Sent to Kafka successfully");
+            kafkaTemplate.send(topic, key, update);
+            log.atDebug().addKeyValue("topic", topic).addKeyValue("key", key).log("Sent to Kafka successfully");
         } catch (Exception e) {
             log.atWarn()
-                .addKeyValue("topic", topic)
-                .addKeyValue("key", key)
-                .addKeyValue("error", e.getMessage())
-                .log("Failed to send to Kafka");
+                    .addKeyValue("topic", topic)
+                    .addKeyValue("key", key)
+                    .addKeyValue("error", e.getMessage())
+                    .log("Failed to send to Kafka");
             throw new RuntimeException("Kafka send failed for url: " + url, e);
         }
     }

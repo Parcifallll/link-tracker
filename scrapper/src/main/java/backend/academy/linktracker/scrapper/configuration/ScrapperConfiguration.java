@@ -21,25 +21,25 @@ public class ScrapperConfiguration {
     @Bean
     public GithubClient githubClient(GithubProperties properties) {
         RestClient restClient = RestClient.builder()
-            .baseUrl("https://api.github.com")
-            .defaultHeader("Authorization", "Bearer " + properties.getToken())
-            .defaultHeader("Accept", "application/vnd.github+json")
-            .requestFactory(buildRequestFactory())
-            .build();
+                .baseUrl("https://api.github.com")
+                .defaultHeader("Authorization", "Bearer " + properties.getToken())
+                .defaultHeader("Accept", "application/vnd.github+json")
+                .requestFactory(buildRequestFactory())
+                .build();
         return HttpServiceProxyFactory.builderFor(RestClientAdapter.create(restClient))
-            .build()
-            .createClient(GithubClient.class);
+                .build()
+                .createClient(GithubClient.class);
     }
 
     @Bean
     public StackOverflowClient stackOverflowClient() {
         RestClient restClient = RestClient.builder()
-            .baseUrl("https://api.stackexchange.com/2.3")
-            .requestFactory(buildRequestFactory())
-            .build();
+                .baseUrl("https://api.stackexchange.com/2.3")
+                .requestFactory(buildRequestFactory())
+                .build();
         return HttpServiceProxyFactory.builderFor(RestClientAdapter.create(restClient))
-            .build()
-            .createClient(StackOverflowClient.class);
+                .build()
+                .createClient(StackOverflowClient.class);
     }
 
     private SimpleClientHttpRequestFactory buildRequestFactory() {

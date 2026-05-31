@@ -11,7 +11,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
-@SpringBootTest(properties = "app.notification.type=grpc")
+@SpringBootTest
 @ActiveProfiles("test")
 @Import(TestcontainersConfiguration.class)
 class GrpcMessageSenderConfigurationTest extends AbstractIntegrationTest {
@@ -20,7 +20,12 @@ class GrpcMessageSenderConfigurationTest extends AbstractIntegrationTest {
     private ApplicationContext context;
 
     @Test
-    void grpcNotificationType_usesGrpcMessageSender() {
-        assertThat(context.getBean(MessageSender.class)).isInstanceOf(GrpcMessageSender.class);
+    void grpcSenderAlwaysPresent_usedAsFallbackTransport() {
+        assertThat(context.getBean(GrpcMessageSender.class)).isNotNull();
+    }
+
+    @Test
+    void primarySender_isFallbackMessageSender() {
+        assertThat(context.getBean(MessageSender.class)).isInstanceOf(FallbackMessageSender.class);
     }
 }
