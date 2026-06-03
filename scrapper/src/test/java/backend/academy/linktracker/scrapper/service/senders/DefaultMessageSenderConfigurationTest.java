@@ -20,7 +20,17 @@ class DefaultMessageSenderConfigurationTest extends AbstractIntegrationTest {
     private ApplicationContext context;
 
     @Test
-    void defaultNotificationType_usesKafkaMessageSender() {
-        assertThat(context.getBean(MessageSender.class)).isInstanceOf(KafkaMessageSender.class);
+    void defaultConfiguration_primarySenderIsFallback() {
+        assertThat(context.getBean(MessageSender.class)).isInstanceOf(FallbackMessageSender.class);
+    }
+
+    @Test
+    void defaultConfiguration_kafkaSenderIsPresent() {
+        assertThat(context.getBean(KafkaMessageSender.class)).isNotNull();
+    }
+
+    @Test
+    void defaultConfiguration_grpcSenderIsPresent() {
+        assertThat(context.getBean(GrpcMessageSender.class)).isNotNull();
     }
 }

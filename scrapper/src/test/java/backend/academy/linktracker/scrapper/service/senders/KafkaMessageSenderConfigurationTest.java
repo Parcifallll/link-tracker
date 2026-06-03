@@ -11,7 +11,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
-@SpringBootTest(properties = "app.notification.type=kafka")
+@SpringBootTest
 @ActiveProfiles("test")
 @Import(TestcontainersConfiguration.class)
 class KafkaMessageSenderConfigurationTest extends AbstractIntegrationTest {
@@ -20,7 +20,12 @@ class KafkaMessageSenderConfigurationTest extends AbstractIntegrationTest {
     private ApplicationContext context;
 
     @Test
-    void kafkaNotificationType_usesKafkaMessageSender() {
-        assertThat(context.getBean(MessageSender.class)).isInstanceOf(KafkaMessageSender.class);
+    void kafkaSenderAlwaysPresent_usedAsPrimaryTransport() {
+        assertThat(context.getBean(KafkaMessageSender.class)).isNotNull();
+    }
+
+    @Test
+    void primarySender_isFallbackMessageSender() {
+        assertThat(context.getBean(MessageSender.class)).isInstanceOf(FallbackMessageSender.class);
     }
 }
