@@ -2,11 +2,6 @@ package backend.academy.linktracker.ai;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.timeout;
-import static org.mockito.Mockito.verify;
 
 import backend.academy.linktracker.ai.dto.ProcessedLinkUpdate;
 import backend.academy.linktracker.ai.dto.RawLinkUpdate;
@@ -28,10 +23,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.kafka.KafkaContainer;
@@ -50,9 +43,6 @@ class KafkaPipelineIntegrationTest {
     }
 
     private final ObjectMapper objectMapper = new ObjectMapper();
-
-    @MockitoSpyBean
-    private KafkaTemplate<String, ProcessedLinkUpdate> kafkaTemplate;
 
     private KafkaProducer<String, String> rawProducer;
     private KafkaConsumer<String, String> processedConsumer;
@@ -96,8 +86,6 @@ class KafkaPipelineIntegrationTest {
         rawProducer.send(new ProducerRecord<>("link.raw-updates", "42", objectMapper.writeValueAsString(update)));
         rawProducer.flush();
 
-        verify(kafkaTemplate, timeout(10_000)).send(anyString(), anyString(), any(ProcessedLinkUpdate.class));
-
         List<ProcessedLinkUpdate> received = pollMessages(Duration.ofSeconds(10));
         assertThat(received).hasSize(1);
         assertThat(received.get(0).id()).isEqualTo(42L);
@@ -114,7 +102,8 @@ class KafkaPipelineIntegrationTest {
 
         await().atMost(8, TimeUnit.SECONDS)
                 .pollInterval(500, TimeUnit.MILLISECONDS)
-                .untilAsserted(() -> verify(kafkaTemplate, never()).send(anyString(), anyString(), any()));
+                .untilAsserted(
+                        () -> assertThat(pollMessages(Duration.ofMillis(500))).isEmpty());
     }
 
     @Test
@@ -127,13 +116,15 @@ class KafkaPipelineIntegrationTest {
         rawProducer.send(new ProducerRecord<>("link.raw-updates", "55", objectMapper.writeValueAsString(valid)));
         rawProducer.flush();
 
-        verify(kafkaTemplate, timeout(10_000)).send(anyString(), anyString(), any(ProcessedLinkUpdate.class));
+        List<ProcessedLinkUpdate> received = pollMessages(Duration.ofSeconds(10));
+        assertThat(received).hasSize(1);
+        assertThat(received.get(0).id()).isEqualTo(55L);
     }
 
     private List<ProcessedLinkUpdate> pollMessages(Duration timeout) throws Exception {
         List<ProcessedLinkUpdate> results = new ArrayList<>();
         long deadline = System.currentTimeMillis() + timeout.toMillis();
-        while (results.isEmpty() && System.currentTimeMillis() < deadline) {
+        while (results.size() < 1 && System.currentTimeMillis() < deadline) {
             for (ConsumerRecord<String, String> record : processedConsumer.poll(Duration.ofMillis(500))) {
                 results.add(objectMapper.readValue(record.value(), ProcessedLinkUpdate.class));
             }
