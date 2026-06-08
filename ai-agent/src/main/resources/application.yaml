@@ -4,3 +4,43 @@ server:
 spring:
   application:
     name: ai-agent
+  output:
+    ansi:
+      enabled: always
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: ai-agent-consumer-group
+      auto-offset-reset: earliest
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+        spring.json.value.default.type: backend.academy.linktracker.ai.dto.RawLinkUpdate
+        spring.json.trusted.packages: backend.academy.linktracker.ai.dto
+    producer:
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+
+ai-agent:
+  filtering:
+    stop-words:
+      - spam
+      - ads
+      - promo
+    excluded-authors:
+      - bot-user
+    min-length: 20
+  summarization:
+    threshold: 500
+
+logging:
+  structured:
+    format:
+      console: ecs
+  level:
+    root: WARN
+    backend.academy.linktracker: INFO
+    org.springframework.kafka: WARN
+    org.apache.kafka: WARN
+    org.apache.kafka.common.metrics: WARN
