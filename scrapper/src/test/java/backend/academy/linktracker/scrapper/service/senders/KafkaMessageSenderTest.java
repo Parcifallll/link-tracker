@@ -1,6 +1,7 @@
 package backend.academy.linktracker.scrapper.service.senders;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -13,6 +14,7 @@ import backend.academy.linktracker.scrapper.service.updates.dto.UpdateInfo;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,12 +41,15 @@ class KafkaMessageSenderTest {
     void setUp() {
         when(kafkaProperties.getTopics()).thenReturn(topics);
         when(topics.getFallback()).thenReturn("unknown-updates");
+
+        when(kafkaTemplate.send(anyString(), anyString(), any(LinkUpdate.class)))
+            .thenReturn(CompletableFuture.completedFuture(null));
+
         kafkaMessageSender = new KafkaMessageSender(kafkaTemplate, kafkaProperties);
     }
 
     @Test
     void sendUpdate_githubLink_sendsToGithubTopic() {
-        // Arrange
         Link link = createLink("https://github.com/user/repo", 1L);
         List<Long> chatIds = List.of(123L, 456L);
         UpdateInfo updateInfo = new UpdateInfo("New Release", Map.of());
