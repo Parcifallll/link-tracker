@@ -2,8 +2,8 @@ services:
   scrapper:
     container_name: scrapper
     build:
-      context: ./scrapper
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: scrapper/Dockerfile
     depends_on:
       postgres:
         condition: service_healthy
@@ -29,8 +29,8 @@ services:
   bot:
     container_name: bot
     build:
-      context: ./bot
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: bot/Dockerfile
     depends_on:
       scrapper:
         condition: service_started
