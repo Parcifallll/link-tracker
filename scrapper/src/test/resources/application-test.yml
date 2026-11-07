@@ -5,4 +5,5 @@
 #    password: test
 spring:
   liquibase:
+    enabled: true
     change-log: file:../migrations/db.changelog-master.xml

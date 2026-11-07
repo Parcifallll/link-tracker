@@ -1,24 +1,30 @@
 server:
-  port: 8081
+  port: ${SCRAPPER_SERVER_PORT:8080}
+  shutdown: graceful
 
 spring:
   application:
     name: scrapper
+
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+
+  liquibase:
+    enabled: false
+
   grpc:
+    server:
+      port: ${SCRAPPER_GRPC_SERVER_PORT:9090}
     client:
       channels:
         bot:
-          address: localhost:9090
-    server:
-      port: 9091
+          address: ${BOT_GRPC_ADDRESS:localhost:9091}
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/${POSTGRES_DB}
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:link-tracker}
     username: ${POSTGRES_USER}
     password: ${POSTGRES_PASSWORD}
-
-  liquibase:
-    change-log: file:migrations/db.changelog-master.xml
+    driver-class-name: org.postgresql.Driver
 
   jpa:
     hibernate:
@@ -26,7 +32,7 @@ spring:
     open-in-view: false
 
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:29092}
     producer:
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       properties:
@@ -34,24 +40,30 @@ spring:
 
   data:
     redis:
-      host: localhost
-      port: 6379
+      host: ${VALKEY_HOST:localhost}
+      port: ${VALKEY_PORT:6379}
+
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
 
 app:
   database:
-    access-type: ORM
+    access-type: ${DB_ACCESS_TYPE:ORM}
+
   kafka:
     topics:
-      github-updates: github-updates
-      stackoverflow-updates: stackoverflow-updates
-      fallback: unknown-updates
+      github-updates: ${KAFKA_TOPIC_GITHUB:github-updates}
+      stackoverflow-updates: ${KAFKA_TOPIC_STACKOVERFLOW:stackoverflow-updates}
+      fallback: ${KAFKA_TOPIC_FALLBACK:unknown-updates}
 
-  # not used, managed by resilience
   notification:
-    type: kafka # {kafka, grpc}
+    type: ${NOTIFICATION_TYPE:kafka}   # kafka/grpc
 
   cache:
-    ttl: 10m
+    ttl: ${CACHE_TTL:10m}
 
   stackoverflow:
     key: ${STACKOVERFLOW_KEY}
@@ -60,12 +72,9 @@ app:
   github:
     token: ${GITHUB_TOKEN}
 
-  bot:
-    url: http://localhost:8080
-
   scheduler:
-    interval: 30s
-    batch-size: 100
+    interval: ${SCHEDULER_INTERVAL:30s}
+    batch-size: ${SCHEDULER_BATCH_SIZE:100}
 
   resilience:
     timeout:
@@ -93,10 +102,3 @@ logging:
   structured:
     format:
       console: ecs
-  level:
-    root: WARN
-    backend.academy.linktracker: WARN
-    org.springframework.kafka: WARN
-    org.apache.kafka: WARN
-    org.testcontainers: WARN
-    org.apache.kafka.common.metrics: WARN

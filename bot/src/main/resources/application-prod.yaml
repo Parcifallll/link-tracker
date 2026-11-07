@@ -1,0 +1,9 @@
+logging:
+  level:
+    root: WARN
+    backend.academy.linktracker: WARN
+    org.springframework.kafka: ERROR
+    org.apache.kafka: ERROR
+    org.apache.kafka.common.metrics: ERROR
+    sun.rmi: WARN
+    javax.management: WARN

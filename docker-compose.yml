@@ -1,4 +1,52 @@
 services:
+  scrapper:
+    container_name: scrapper
+    build:
+      context: ./scrapper
+      dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      liquibase-migrations:
+        condition: service_completed_successfully
+      kafka-controller:
+        condition: service_healthy
+      valkey-master:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      KAFKA_BOOTSTRAP_SERVERS: kafka-controller:9092
+      VALKEY_HOST: valkey-master
+      VALKEY_PORT: 6379
+      BOT_GRPC_ADDRESS: bot:9091
+    ports:
+      - "${SCRAPPER_SERVER_PORT}:${SCRAPPER_SERVER_PORT}"
+    restart: on-failure
+
+  bot:
+    container_name: bot
+    build:
+      context: ./bot
+      dockerfile: Dockerfile
+    depends_on:
+      scrapper:
+        condition: service_started
+      kafka-controller:
+        condition: service_healthy
+      valkey-master:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      KAFKA_BOOTSTRAP_SERVERS: kafka-controller:9092
+      SCRAPPER_GRPC_ADDRESS: scrapper:9090
+    ports:
+      - "${BOT_SERVER_PORT}:${BOT_SERVER_PORT}"
+    restart: on-failure
+
   liquibase-migrations:
     container_name: migrations
     image: liquibase/liquibase:4.29
@@ -25,11 +73,11 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "5432:${POSTGRES_PORT}"
+      - "${POSTGRES_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -h localhost -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      test: ["CMD-SHELL", "pg_isready -h localhost -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -39,9 +87,10 @@ services:
     image: confluentinc/cp-kafka:7.8.0
     environment:
       KAFKA_NODE_ID: 1
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
-      KAFKA_LISTENERS: PLAINTEXT://kafka-controller:29092,CONTROLLER://kafka-controller:29093,EXTERNAL://0.0.0.0:9092
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-controller:29092,EXTERNAL://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:9092,CONTROLLER://kafka-controller:29093,EXTERNAL://0.0.0.0:29092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka-controller:9092,EXTERNAL://localhost:${KAFKA_PORT}
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka-controller:29093
       KAFKA_PROCESS_ROLES: broker,controller
@@ -51,23 +100,21 @@ services:
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       CLUSTER_ID: MkQrdeSnT2ePEKGSRJvskQ
     ports:
-      - "9092:9092"
+      - "${KAFKA_PORT}:29092"
     healthcheck:
       test: kafka-broker-api-versions --bootstrap-server localhost:9092
       interval: 10s
       timeout: 5s
       retries: 3
 
-  # --- Valkey Sentinel cluster ---
-
   valkey-master:
     container_name: valkey-master
     image: valkey/valkey:8-alpine
     command: valkey-server --protected-mode no
     ports:
-      - "6379:6379"
+      - "${VALKEY_PORT}:6379"
     healthcheck:
-      test: [ "CMD", "valkey-cli", "ping" ]
+      test: ["CMD", "valkey-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -77,7 +124,7 @@ services:
     image: valkey/valkey:8-alpine
     command: valkey-server --replicaof valkey-master 6379 --protected-mode no
     ports:
-      - "6380:6379"
+      - "${VALKEY_REPLICA1_PORT}:6379"
     depends_on:
       valkey-master:
         condition: service_healthy
@@ -87,7 +134,7 @@ services:
     image: valkey/valkey:8-alpine
     command: valkey-server --replicaof valkey-master 6379 --protected-mode no
     ports:
-      - "6381:6379"
+      - "${VALKEY_REPLICA2_PORT}:6379"
     depends_on:
       valkey-master:
         condition: service_healthy
@@ -110,7 +157,7 @@ services:
         echo 'sentinel parallel-syncs mymaster 1' >> /tmp/sentinel.conf &&
         valkey-sentinel /tmp/sentinel.conf"
     ports:
-      - "26379:26379"
+      - "${VALKEY_SENTINEL1_PORT}:26379"
     depends_on:
       valkey-master:
         condition: service_healthy
@@ -133,7 +180,7 @@ services:
         echo 'sentinel parallel-syncs mymaster 1' >> /tmp/sentinel.conf &&
         valkey-sentinel /tmp/sentinel.conf"
     ports:
-      - "26380:26379"
+      - "${VALKEY_SENTINEL2_PORT}:26379"
     depends_on:
       valkey-master:
         condition: service_healthy
@@ -156,7 +203,7 @@ services:
         echo 'sentinel parallel-syncs mymaster 1' >> /tmp/sentinel.conf &&
         valkey-sentinel /tmp/sentinel.conf"
     ports:
-      - "26381:26379"
+      - "${VALKEY_SENTINEL3_PORT}:26379"
     depends_on:
       valkey-master:
         condition: service_healthy

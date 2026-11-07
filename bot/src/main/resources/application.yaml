@@ -1,44 +1,45 @@
 server:
-  port: 8080
+  port: ${BOT_SERVER_PORT:8081}
+  shutdown: graceful
 
 spring:
   application:
     name: bot
-  output:
-    ansi:
-      enabled: always
+
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+
   grpc:
     server:
-      port: 9090
+      port: ${BOT_GRPC_SERVER_PORT:9091}
     client:
       channels:
         scrapper:
-          address: localhost:9091
+          address: ${SCRAPPER_GRPC_ADDRESS:localhost:9090}
 
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:29092}
     consumer:
-      group-id: bot-consumer-group
+      group-id: ${KAFKA_CONSUMER_GROUP:bot-consumer-group}
       auto-offset-reset: earliest
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
         spring.json.value.default.type: backend.academy.linktracker.bot.dto.LinkUpdate
 
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
 app:
   telegram:
-    url: https://api.telegram.org/bot
+    url: ${TELEGRAM_API_URL:https://api.telegram.org/bot}
     token: ${APP_TELEGRAM_TOKEN}
-    update-listener-sleep: 1s
-    debug: false
+    update-listener-sleep: ${TELEGRAM_UPDATE_LISTENER_SLEEP:1s}
+    debug: ${TELEGRAM_DEBUG:false}
 
 logging:
   structured:
     format:
       console: ecs
-  level:
-    root: WARN
-    backend.academy.linktracker: WARN
-    org.springframework.kafka: WARN
-    org.apache.kafka: WARN
-    org.testcontainers: WARN
-    org.apache.kafka.common.metrics: WARN
