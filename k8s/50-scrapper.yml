@@ -1,0 +1,80 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scrapper-config
+  namespace: link-tracker
+data:
+  POSTGRES_HOST: postgres
+  POSTGRES_PORT: "5432"
+  BOT_GRPC_ADDRESS: bot:9091
+  SPRING_DATA_REDIS_SENTINEL_MASTER: mymaster
+  SPRING_DATA_REDIS_SENTINEL_NODES: valkey-sentinel-0.valkey-sentinel.link-tracker.svc.cluster.local:26379,valkey-sentinel-1.valkey-sentinel.link-tracker.svc.cluster.local:26379,valkey-sentinel-2.valkey-sentinel.link-tracker.svc.cluster.local:26379
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: scrapper
+  namespace: link-tracker
+spec:
+  selector:
+    app: scrapper
+  ports:
+    - { name: http, port: 8080, targetPort: http }
+    - { name: grpc, port: 9090, targetPort: grpc }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scrapper
+  namespace: link-tracker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: scrapper
+  template:
+    metadata:
+      labels:
+        app: scrapper
+    spec:
+      containers:
+        - name: scrapper
+          image: link-tracker/scrapper:0.0.1
+          imagePullPolicy: Never
+          ports:
+            - { name: http, containerPort: 8080 }
+            - { name: grpc, containerPort: 9090 }
+          envFrom:
+            - configMapRef:
+                name: common-config
+            - configMapRef:
+                name: scrapper-config
+          env:
+            - name: POSTGRES_DB
+              valueFrom: { secretKeyRef: { name: link-tracker-secrets, key: POSTGRES_DB } }
+            - name: POSTGRES_USER
+              valueFrom: { secretKeyRef: { name: link-tracker-secrets, key: POSTGRES_USER } }
+            - name: POSTGRES_PASSWORD
+              valueFrom: { secretKeyRef: { name: link-tracker-secrets, key: POSTGRES_PASSWORD } }
+            - name: GITHUB_TOKEN
+              valueFrom: { secretKeyRef: { name: link-tracker-secrets, key: GITHUB_TOKEN } }
+            - name: STACKOVERFLOW_KEY
+              valueFrom: { secretKeyRef: { name: link-tracker-secrets, key: STACKOVERFLOW_KEY } }
+            - name: STACKOVERFLOW_ACCESS_KEY
+              valueFrom: { secretKeyRef: { name: link-tracker-secrets, key: STACKOVERFLOW_ACCESS_KEY } }
+          startupProbe:
+            httpGet: { path: /actuator/health/liveness, port: http }
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            httpGet: { path: /actuator/health/readiness, port: http }
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet: { path: /actuator/health/liveness, port: http }
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests: { cpu: 200m, memory: 512Mi }
+            limits: { memory: 1024Mi }

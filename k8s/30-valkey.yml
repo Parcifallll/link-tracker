@@ -1,0 +1,254 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: valkey-scripts
+  namespace: link-tracker
+data:
+  lib.sh: |
+    #!/bin/sh
+    DOMAIN="svc.cluster.local"
+    VALKEY_SVC="valkey-headless"
+    SENTINEL_SVC="valkey-sentinel"
+    REPLICAS=3
+    VALKEY_HOSTS=""
+    SENTINEL_HOSTS=""
+    i=0
+    while [ "$i" -lt "$REPLICAS" ]; do
+      VALKEY_HOSTS="$VALKEY_HOSTS valkey-$i.$VALKEY_SVC.$NAMESPACE.$DOMAIN"
+      SENTINEL_HOSTS="$SENTINEL_HOSTS valkey-sentinel-$i.$SENTINEL_SVC.$NAMESPACE.$DOMAIN"
+      i=$((i + 1))
+    done
+    VALKEY_0="valkey-0.$VALKEY_SVC.$NAMESPACE.$DOMAIN"
+
+    ask_sentinels() {
+      for h in $SENTINEL_HOSTS; do
+        [ "$h" = "$SELF" ] && continue
+        out=$(timeout 3 valkey-cli -h "$h" -p 26379 sentinel get-master-addr-by-name "$MASTER_NAME" 2>/dev/null | head -n 1)
+        if [ -n "$out" ]; then echo "$out"; return 0; fi
+      done
+      return 1
+    }
+
+    scan_valkeys() {
+      for h in $VALKEY_HOSTS; do
+        [ "$h" = "$SELF" ] && continue
+        role=$(timeout 3 valkey-cli -h "$h" -p 6379 role 2>/dev/null | head -n 1)
+        if [ "$role" = "master" ]; then echo "$h"; return 0; fi
+      done
+      return 1
+    }
+
+  valkey.sh: |
+    #!/bin/sh
+    set -eu
+    . /scripts/lib.sh
+    ORDINAL="${HOSTNAME##*-}"
+    SELF="$HOSTNAME.$VALKEY_SVC.$NAMESPACE.$DOMAIN"
+
+    MASTER=""
+    tries=0
+    while [ "$tries" -lt 10 ]; do
+      MASTER=$(ask_sentinels || scan_valkeys || true)
+      [ -n "$MASTER" ] && break
+      # Никто не знает мастера: valkey-0 стартует мастером, остальные немного ждут.
+      [ "$ORDINAL" = "0" ] && break
+      tries=$((tries + 1))
+      sleep 3
+    done
+
+    cat > /data/valkey.conf <<CONF
+    port 6379
+    protected-mode no
+    dir /data
+    save ""
+    appendonly no
+    replica-announce-ip $SELF
+    replica-announce-port 6379
+    CONF
+
+    if [ -z "$MASTER" ]; then
+      if [ "$ORDINAL" = "0" ]; then
+        echo "no master known, bootstrapping $SELF as master"
+      else
+        echo "no master known after waiting, following $VALKEY_0"
+        MASTER="$VALKEY_0"
+      fi
+    fi
+
+    if [ -n "$MASTER" ] && [ "$MASTER" != "$SELF" ] && [ "$MASTER" != "${POD_IP:-}" ]; then
+      echo "starting $SELF as replica of $MASTER"
+      echo "replicaof $MASTER 6379" >> /data/valkey.conf
+    else
+      echo "starting $SELF as master"
+    fi
+
+    exec valkey-server /data/valkey.conf
+
+  sentinel.sh: |
+    #!/bin/sh
+    set -eu
+    . /scripts/lib.sh
+    SELF="$HOSTNAME.$SENTINEL_SVC.$NAMESPACE.$DOMAIN"
+
+    MASTER=$(ask_sentinels || scan_valkeys || true)
+    [ -n "$MASTER" ] || MASTER="$VALKEY_0"
+    echo "sentinel $SELF monitors master $MASTER"
+
+    MYID=$(printf '%s' "$HOSTNAME" | sha1sum | cut -c1-40)
+
+    cat > /data/sentinel.conf <<CONF
+    port 26379
+    protected-mode no
+    dir /data
+    sentinel myid $MYID
+    sentinel resolve-hostnames yes
+    sentinel announce-hostnames yes
+    sentinel announce-ip $SELF
+    sentinel announce-port 26379
+    sentinel monitor $MASTER_NAME $MASTER 6379 2
+    sentinel down-after-milliseconds $MASTER_NAME 5000
+    sentinel failover-timeout $MASTER_NAME 60000
+    sentinel parallel-syncs $MASTER_NAME 1
+    CONF
+
+    exec valkey-sentinel /data/sentinel.conf
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: valkey-headless
+  namespace: link-tracker
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  selector:
+    app: valkey
+  ports:
+    - name: valkey
+      port: 6379
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: valkey-sentinel
+  namespace: link-tracker
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  selector:
+    app: valkey-sentinel
+  ports:
+    - name: sentinel
+      port: 26379
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: valkey
+  namespace: link-tracker
+spec:
+  serviceName: valkey-headless
+  replicas: 3
+  podManagementPolicy: Parallel
+  selector:
+    matchLabels:
+      app: valkey
+  template:
+    metadata:
+      labels:
+        app: valkey
+    spec:
+      terminationGracePeriodSeconds: 15
+      containers:
+        - name: valkey
+          image: valkey/valkey:8-alpine
+          command: ["sh", "/scripts/valkey.sh"]
+          ports:
+            - name: valkey
+              containerPort: 6379
+          env:
+            - name: NAMESPACE
+              valueFrom: { fieldRef: { fieldPath: metadata.namespace } }
+            - name: POD_IP
+              valueFrom: { fieldRef: { fieldPath: status.podIP } }
+            - name: MASTER_NAME
+              value: mymaster
+          readinessProbe:
+            exec:
+              command: ["valkey-cli", "ping"]
+            periodSeconds: 5
+            timeoutSeconds: 3
+          livenessProbe:
+            exec:
+              command: ["valkey-cli", "ping"]
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { memory: 256Mi }
+          volumeMounts:
+            - { name: scripts, mountPath: /scripts }
+            - { name: data, mountPath: /data }
+      volumes:
+        - name: scripts
+          configMap:
+            name: valkey-scripts
+        - name: data
+          emptyDir: {}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: valkey-sentinel
+  namespace: link-tracker
+spec:
+  serviceName: valkey-sentinel
+  replicas: 3
+  podManagementPolicy: Parallel
+  selector:
+    matchLabels:
+      app: valkey-sentinel
+  template:
+    metadata:
+      labels:
+        app: valkey-sentinel
+    spec:
+      terminationGracePeriodSeconds: 15
+      containers:
+        - name: sentinel
+          image: valkey/valkey:8-alpine
+          command: ["sh", "/scripts/sentinel.sh"]
+          ports:
+            - name: sentinel
+              containerPort: 26379
+          env:
+            - name: NAMESPACE
+              valueFrom: { fieldRef: { fieldPath: metadata.namespace } }
+            - name: MASTER_NAME
+              value: mymaster
+          readinessProbe:
+            exec:
+              command: ["valkey-cli", "-p", "26379", "ping"]
+            periodSeconds: 5
+            timeoutSeconds: 3
+          livenessProbe:
+            exec:
+              command: ["valkey-cli", "-p", "26379", "ping"]
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
+          resources:
+            requests: { cpu: 30m, memory: 32Mi }
+            limits: { memory: 128Mi }
+          volumeMounts:
+            - { name: scripts, mountPath: /scripts }
+            - { name: data, mountPath: /data }
+      volumes:
+        - name: scripts
+          configMap:
+            name: valkey-scripts
+        - name: data
+          emptyDir: {}

@@ -11,20 +11,24 @@ services:
         condition: service_completed_successfully
       kafka-controller:
         condition: service_healthy
-      valkey-master:
-        condition: service_healthy
+      valkey-sentinel-1:
+        condition: service_started
+      valkey-sentinel-2:
+        condition: service_started
+      valkey-sentinel-3:
+        condition: service_started
     env_file: .env
     environment:
       SPRING_PROFILES_ACTIVE: prod
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
       KAFKA_BOOTSTRAP_SERVERS: kafka-controller:9092
-      VALKEY_HOST: valkey-master
-      VALKEY_PORT: 6379
+      SPRING_DATA_REDIS_SENTINEL_MASTER: mymaster
+      SPRING_DATA_REDIS_SENTINEL_NODES: valkey-sentinel-1:26379,valkey-sentinel-2:26379,valkey-sentinel-3:26379
       BOT_GRPC_ADDRESS: bot:9091
     ports:
       - "${SCRAPPER_SERVER_PORT}:${SCRAPPER_SERVER_PORT}"
-    restart: on-failure
+    restart: no
 
   bot:
     container_name: bot
@@ -36,8 +40,6 @@ services:
         condition: service_started
       kafka-controller:
         condition: service_healthy
-      valkey-master:
-        condition: service_healthy
     env_file: .env
     environment:
       SPRING_PROFILES_ACTIVE: prod
@@ -45,7 +47,7 @@ services:
       SCRAPPER_GRPC_ADDRESS: scrapper:9090
     ports:
       - "${BOT_SERVER_PORT}:${BOT_SERVER_PORT}"
-    restart: on-failure
+    restart: no
 
   liquibase-migrations:
     container_name: migrations

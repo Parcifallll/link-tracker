@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: common-config
+  namespace: link-tracker
+data:
+  SPRING_PROFILES_ACTIVE: prod
+  KAFKA_BOOTSTRAP_SERVERS: kafka:9092

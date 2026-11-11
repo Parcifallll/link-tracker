@@ -1,0 +1,17 @@
+.env
+
+target/
+
+.idea/
+*.iml
+
+.git/
+.gitignore
+.gitattributes
+
+
+.gitlab-ci.yml
+*.md
+
+docker-compose.yml
+k8s/
